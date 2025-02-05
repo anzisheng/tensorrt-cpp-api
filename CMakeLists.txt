@@ -28,7 +28,8 @@ find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(fmt REQUIRED)
 
-add_library(tensorrt_cpp_api SHARED
+add_library(tensorrt_cpp_api
+        SHARED #STATIC                     #SHARED
         src/engine.cpp
         src/yolov8.cpp
         src/utils.cpp

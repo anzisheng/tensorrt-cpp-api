@@ -41,3 +41,7 @@ cmake-build-*
 
 build/
 models/
+
+*.Identifier
+*.jpg
+

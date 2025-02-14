@@ -27,7 +27,7 @@ find_package(TensorRT REQUIRED)
 find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(fmt REQUIRED)
-
+find_package(nlohmann_json  REQUIRED)
 add_library(tensorrt_cpp_api
         STATIC                     #SHARED
         src/engine.cpp
@@ -38,7 +38,7 @@ add_library(tensorrt_cpp_api
         src/facerecognizer_trt.cpp
         src/faceswap_trt.cpp
         src/faceenhancer_trt.cpp
-        #src/SampleOnnxMNIST.cpp
+        #src/json_info.cpp
         )
 
 target_include_directories(tensorrt_cpp_api PUBLIC ${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${TensorRT_INCLUDE_DIRS} 

@@ -20,17 +20,40 @@
 //#include "faceenhancer_trt2.h"
 #include "faceswap_trt.h"
 #include "SampleOnnxMNIST.h"
+#include "nlohmann/json.hpp" 
+
 //#include "faceswap.h"
 #include "engine.h"
 #include "utile.h"
 #include "yolov8.h"
 #include <vector>
+//#include "json_info.h"
+#include "nlohmann/json.hpp"
 using namespace std;
 using namespace cv;
+using json =nlohmann::json;
+
+//function:
+void read_json_file(string file_name, json& commands)
+{
+    ifstream jsonFile(file_name);
+    jsonFile >> commands;
+}
+void write_json_file(string file_name, json& commands)
+{
+    std::ofstream file(file_name);
+    file << commands;
+}
 
 int main(int argc, char *argv[]) {
    
 	std::cout << "hello..."<< std::endl;
+    //1. read the received message.
+    nlohmann::json commands;
+    read_json_file("info.json", commands);
+
+
+
     //tensorrt part
     YoloV8Config config;
     std::string onnxModelPath;

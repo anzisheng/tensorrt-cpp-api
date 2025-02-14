@@ -33,6 +33,67 @@ using namespace std;
 using namespace cv;
 using json =nlohmann::json;
 
+// namespace 
+namespace ns
+{
+    class style
+    {
+    public:
+        string name;
+        //int age;
+        //string phone;
+    };
+    void from_json(const json& j,style &p)
+    {
+        j.at("name").get_to(p.name);
+        //j.at("age").get_to(p.age);
+        //j.at("phone").get_to(p.phone);
+    }
+
+    void to_json(json& j,const style& s)
+    {
+        j = json{{"name",s.name}};
+    }
+
+    class order //class_room
+    {
+    public:
+    string sessionID;//teacher_name;
+    //std::vector<style> student_list;
+    std::vector<style> style_list;
+    };
+
+    void from_json(const json& j, order& p)
+    {
+
+        j.at("sessionID").get_to(p.sessionID);
+        std::cout << p.sessionID <<std::endl;
+
+        for(auto &style_t:j["StyleImageName"])
+        {
+            //student s;
+            std::cout << style_t << std::endl;
+            style s;
+            from_json(style_t,s);
+            //p.student_list.push_back(s);
+            p.style_list.push_back(s);
+        }
+    }
+    //void to_json(json&j, const class_room& s)
+    void to_json(json&j, const order& s)
+    {
+        j = json{ {"sessionID", s.sessionID } };
+        for(auto& style_t:s.style_list)
+        {
+        json j_style;
+        to_json(j_style,style_t);
+        j["style_list"].push_back(j_style);
+        }
+    }
+
+}
+
+
 //function:
 void read_json_file(string file_name, json& commands)
 {
@@ -51,6 +112,13 @@ int main(int argc, char *argv[]) {
     //1. read the received message.
     nlohmann::json commands;
     read_json_file("info.json", commands);
+    std::cout << "world..."<< std::endl;
+    ns::order cr;
+    std::cout << commands << std::endl;
+    ns::from_json(commands, cr);
+    std::cout << "hello222..."<< std::endl;
+    std::cout << cr.style_list[0].name <<std::endl;
+    std::cout << cr.sessionID << "/0.jpg" <<std::endl;
 
 
 

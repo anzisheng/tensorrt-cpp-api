@@ -28,6 +28,7 @@ find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(fmt REQUIRED)
 find_package(nlohmann_json  REQUIRED)
+find_package(FMT REQUIRED)
 add_library(tensorrt_cpp_api
         STATIC                     #SHARED
         src/engine.cpp

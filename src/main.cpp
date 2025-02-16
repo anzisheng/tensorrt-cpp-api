@@ -194,9 +194,10 @@ public:
         {
             cout<<"queue is empty, wait()..."<<endl;
             _deqCv.wait(lock, [this]{return _queue.size()>0;});
-            cout << "I am back when queue size is " <<_queue.size() <<endl;
+            //cout << "I am back when queue size is " <<_queue.size() <<endl;
         }
         MsgType& msg = _queue.front();
+        cout << "get the first rask: " <<msg.photo << " " << msg.style <<endl;
         _queue.pop();
         _enqCv.notify_one();
         return msg;
@@ -212,14 +213,163 @@ struct CustomerTask
 {
     string task;
     float money;
+    string photo;
+    string style;
+    string swap;
     CustomerTask(){}
+    CustomerTask(string photo_filename, string style_filename):photo(photo_filename), style(style_filename){}
     CustomerTask(const CustomerTask& cp):task(cp.task),money(cp.money){}
+    string SwapFace()
+    {
+        cout << "swap face" << endl;
+        cout << photo << "   " <<style <<endl;
+        return "swap...";
+    }
     void ExecuteTask()
     {
+        //swap = SwapFace();
+        //cout << "swap is " << swap;
+        //return;
+        ///////////////////////////
+        //swap face process
+        cout << "begin to swap facing ..."<< photo << style <<endl;
+        YoloV8Config config;
+        std::string onnxModelPath;
+        std::string onnxModelPathLandmark;
+
+        std::string inputImage = this->photo;        
+        std::string outputImage = this->style;
+        cout << "inputImage::: " << inputImage << " and  " << outputImage <<endl;
+
+        YoloV8 yoloV8("yoloface_8n.onnx", config); //
+        //std::cout << "what's the fuck..."<< std::endl;
+        Face68Landmarks_trt detect_68landmarks_net_trt("2dfan4.onnx", config);
+        FaceEmbdding_trt face_embedding_net_trt("arcface_w600k_r50.onnx", config);
+
+        SwapFace_trt swap_face_net_trt("inswapper_128.onnx", config, 1);
+        samplesCommon::BufferManager buffers(swap_face_net_trt.m_trtEngine_faceswap->m_engine);
+        
+        //samplesCommon::Args args; // 接收用户传递参数的变量
+        //SampleOnnxMNIST sample(initializeSampleParams(args)); // 定义一个sample实例
+        //FaceEnhance enhance_face_net("gfpgan_1.4.onnx");
+        FaceEnhance_trt enhance_face_net_trt("gfpgan_1.4.onnx", config, 1);
+        //FaceEnhance_trt2 enhance_face_net_trt2("gfpgan_1.4.onnx", config);
+        samplesCommon::BufferManager buffers_enhance(enhance_face_net_trt.m_trtEngine_enhance->m_engine);
+
+            preciseStopwatch stopwatch;
+     // Read the input image
+    cv::Mat img = cv::imread(inputImage);
+    cv::Mat source_img = img.clone();
+    
+    cout << "inputImage: " << inputImage <<endl;
+
+    std::vector<Object>objects = yoloV8.detectObjects(img);
+    
+    // Draw the bounding boxes on the image
+#ifdef SHOW
+    yoloV8.drawObjectLabels(source_img, objects);
+    // Save the image to disk
+    const auto outputName = inputImage.substr(0, inputImage.find_last_of('.')) + "_annotated.jpg";
+    cv::imwrite(outputName, source_img);
+    std::cout << "Saved annotated image to: " << outputName << std::endl;
+#endif
+
+   
+    std::vector<cv::Point2f> face_landmark_5of68_trt;
+    //std::cout <<"begin to detect landmark"<<std::endl;
+    std::vector<cv::Point2f> face68landmarks_trt = detect_68landmarks_net_trt.detectlandmark(img, objects[0], face_landmark_5of68_trt);
+    #ifdef SHOW
+    //std::cout << "face68landmarks_trt size: " <<face68landmarks_trt.size()<<std::endl;
+    //std::cout << "face_landmark_5of68_trt size: " <<face_landmark_5of68_trt.size()<<std::endl;
+    for(int i =0; i < face68landmarks_trt.size(); i++)
+	{
+		//destFile2 << source_face_embedding[i] << " " ;
+        cout << face68landmarks_trt[i] << " ";
+	}    
+    for(int i =0; i < face_landmark_5of68_trt.size(); i++)
+	{
+		//destFile2 << source_face_embedding[i] << " " ;
+        cout << face_landmark_5of68_trt[i] << " ";
+	}
+    #endif
+
+    
+    vector<float> source_face_embedding = face_embedding_net_trt.detect(source_img, face_landmark_5of68_trt);
+
+       
+    cv::Mat target_img = cv::imread(outputImage);
+    cv::Mat target_img2 =target_img.clone();
+
+    std::vector<Object>objects_target = yoloV8.detectObjects(target_img);
+
+    #ifdef SHOW
+    // Draw the bounding boxes on the image
+    yoloV8.drawObjectLabels(target_img2, objects_target);
+    cout << "Detected " << objects_target.size() << " objects" << std::endl;
+    // Save the image to disk
+    const auto outputName_target = outputImage.substr(0, outputImage.find_last_of('.')) + "_annotated.jpg";
+    cv::imwrite(outputName_target, target_img2);
+    std::cout << "Saved annotated image to: " << outputName_target << std::endl;
+#endif
+     
+	// int position = 0; ////一张图片里可能有多个人脸，这里只考虑1个人脸的情况
+	// vector<Point2f> target_landmark_5(5);    
+	// detect_68landmarks_net_trt.detectlandmark(target_img, objects_target[position], target_landmark_5);
+    
+    // cv::Mat swapimg = swap_face_net_trt.process(target_img, source_face_embedding, target_landmark_5, buffers);
+
+
+
+// #ifdef SHOW
+//     // Draw the bounding boxes on the image
+//     yoloV8.drawObjectLabels(target_img2, objects_target);
+//     cout << "Detected " << objects_target.size() << " objects" << std::endl;
+//     // Save the image to disk
+//     const auto outputName_target = outputImage.substr(0, outputImage.find_last_of('.')) + "_annotated.jpg";
+//     cv::imwrite(outputName_target, target_img2);
+//     std::cout << "Saved annotated image to: " << outputName_target << std::endl;
+// #endif
+     
+	int position = 0; ////一张图片里可能有多个人脸，这里只考虑1个人脸的情况
+	vector<Point2f> target_landmark_5(5);    
+	detect_68landmarks_net_trt.detectlandmark(target_img, objects_target[position], target_landmark_5);
+    
+    cv::Mat swapimg = swap_face_net_trt.process(target_img, source_face_embedding, target_landmark_5, buffers);
+    //imwrite("target_img.jpg", target_img);
+//#ifdef SHOW        
+    //std::cout << "swap_face_net.process end" <<std::endl;
+    //imwrite("swapimg.jpg", swapimg);
+//#endif    
+    
+    cv::Mat resultimg = enhance_face_net_trt.process(swapimg, target_landmark_5, buffers_enhance);
+    
+    imwrite("resultimgend.jpg", resultimg);
+
+    //if (!sample.build()) // 【主要】在build方法中构建网络，返回构建网络是否成功的状态
+    // {
+    //     cout<<"bad build"<<endl;
+    //     return 0;////sample::gLogger.reportFail(sampleTest);
+    // }
+    // //if (!sample.infer()) // 【主要】读取图像并进行推理，返回推理是否成功的状态
+    // {
+    //      cout<<"bad build"<<endl;
+    //     return 0;////sample::gLogger.reportFail(sampleTest);
+    // }
+	
+    //preciseStopwatch stopwatch;
+    auto totalElapsedTimeMs = stopwatch.elapsedTime<float, std::chrono::milliseconds>();
+    cout << "total time is " << totalElapsedTimeMs/1000 <<" S"<<endl;
+   
+
+        cout << "end"<<endl;
+        ////////////////////////////
+
+
         if(money>0)
             cout<<"Task "<<task<<" is executed at $"<<money<<endl;
         else
             cout<<"Bank closed because the price is $"<<money<<endl;
+        
     }
 };
 
@@ -240,7 +390,10 @@ public:
         while(1)
         {
             CustomerTask task=_taskQueue.Dequeue();
+            cout << "get the task from queue:" << task.photo << " and " << task.style <<endl;
             task.ExecuteTask();
+            //task.SwapFace();
+
             if(task.money<0)
             {
                 _threadPoolStop=true;
@@ -277,25 +430,161 @@ public:
 
 void TestLeaderFollower()
 {
-    TaskQueueType taskQueue(5);
+    TaskQueueType taskQueue(5);//可以最多放五个任务的队列
     
-    ThreadPool pool(taskQueue,4);
+    ThreadPool pool(taskQueue,1);//放着3个线程的线程池
     //the sleep function simulates the situation that all  
     //worker threads are waiting for the empty message queue at the beginning
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-    for(int i=0;i<10;i++)
+    for(int i=0;i<1;i++)
     {
-        CustomerTask task;
+        string style_name = fmt::format("{}.jpg", i+1);
+        cout <<"style image: "<< style_name<<endl; 
+        CustomerTask task("0.jpg",style_name);
+
+        //task.photo = "0.jpg";
+        
+        //cout <<  style_name<<endl; 
+        //task.style = style_name; 
+
         task.money= i+1;
         if(task.money >5)
             task.task = "deposit $";
         else
-            task.task = "withdraw $";    
+            task.task = "withdraw $";
+        cout << "first task is " <<task.photo << " and " << task.style<< endl;     
         taskQueue.Enqueue(task);
+        cout <<"current queue length:" << taskQueue.Size()<<endl;
     }
 
 }
+
+/////////
+//process
+string swap_faces(string photo, string style){
+        //tensorrt part
+    YoloV8Config config;
+    std::string onnxModelPath;
+    std::string onnxModelPathLandmark;
+    std::string inputImage = photo;// "1.jpg";
+    std::string outputImage =style;// "12.jpg";
+    
+    //std::string inputImage = "12.jpg";
+    //std::string outputImage = "1.jpg";
+    std::cout << "world 000..."<< std::endl;
+    YoloV8 yoloV8("yoloface_8n.onnx", config); //
+    std::cout << "what's the fuck..."<< std::endl;
+    Face68Landmarks_trt detect_68landmarks_net_trt("2dfan4.onnx", config);
+    FaceEmbdding_trt face_embedding_net_trt("arcface_w600k_r50.onnx", config);
+   
+  
+    //SwapFace swap_face_net("inswapper_128.onnx");
+    SwapFace_trt swap_face_net_trt("inswapper_128.onnx", config, 1);
+    samplesCommon::BufferManager buffers(swap_face_net_trt.m_trtEngine_faceswap->m_engine);
+    
+    //samplesCommon::Args args; // 接收用户传递参数的变量
+    //SampleOnnxMNIST sample(initializeSampleParams(args)); // 定义一个sample实例
+    //FaceEnhance enhance_face_net("gfpgan_1.4.onnx");
+    FaceEnhance_trt enhance_face_net_trt("gfpgan_1.4.onnx", config, 1);
+    //FaceEnhance_trt2 enhance_face_net_trt2("gfpgan_1.4.onnx", config);
+    samplesCommon::BufferManager buffers_enhance(enhance_face_net_trt.m_trtEngine_enhance->m_engine);
+
+    //cout << "gfpgan_1.4.onnx trted"<<endl;
+    preciseStopwatch stopwatch;
+     // Read the input image
+    cv::Mat img = cv::imread(inputImage);
+    cv::Mat source_img = img.clone();
+    
+
+    std::vector<Object>objects = yoloV8.detectObjects(img);
+    
+    // Draw the bounding boxes on the image
+#ifdef SHOW
+    yoloV8.drawObjectLabels(source_img, objects);
+    // Save the image to disk
+    const auto outputName = inputImage.substr(0, inputImage.find_last_of('.')) + "_annotated.jpg";
+    cv::imwrite(outputName, source_img);
+    std::cout << "Saved annotated image to: " << outputName << std::endl;
+#endif
+    
+
+    
+    std::vector<cv::Point2f> face_landmark_5of68_trt;
+    //std::cout <<"begin to detect landmark"<<std::endl;
+    std::vector<cv::Point2f> face68landmarks_trt = detect_68landmarks_net_trt.detectlandmark(img, objects[0], face_landmark_5of68_trt);
+    #ifdef SHOW
+    //std::cout << "face68landmarks_trt size: " <<face68landmarks_trt.size()<<std::endl;
+    //std::cout << "face_landmark_5of68_trt size: " <<face_landmark_5of68_trt.size()<<std::endl;
+    for(int i =0; i < face68landmarks_trt.size(); i++)
+	{
+		//destFile2 << source_face_embedding[i] << " " ;
+        cout << face68landmarks_trt[i] << " ";
+	}    
+    for(int i =0; i < face_landmark_5of68_trt.size(); i++)
+	{
+		//destFile2 << source_face_embedding[i] << " " ;
+        cout << face_landmark_5of68_trt[i] << " ";
+	}
+    #endif
+
+    
+    vector<float> source_face_embedding = face_embedding_net_trt.detect(source_img, face_landmark_5of68_trt);
+
+       
+    cv::Mat target_img = cv::imread(outputImage);
+    cv::Mat target_img2 =target_img.clone();
+
+    std::vector<Object>objects_target = yoloV8.detectObjects(target_img);
+   
+
+#ifdef SHOW
+    // Draw the bounding boxes on the image
+    yoloV8.drawObjectLabels(target_img2, objects_target);
+    cout << "Detected " << objects_target.size() << " objects" << std::endl;
+    // Save the image to disk
+    const auto outputName_target = outputImage.substr(0, outputImage.find_last_of('.')) + "_annotated.jpg";
+    cv::imwrite(outputName_target, target_img2);
+    std::cout << "Saved annotated image to: " << outputName_target << std::endl;
+#endif
+     
+	int position = 0; ////一张图片里可能有多个人脸，这里只考虑1个人脸的情况
+	vector<Point2f> target_landmark_5(5);    
+	detect_68landmarks_net_trt.detectlandmark(target_img, objects_target[position], target_landmark_5);
+    
+    cv::Mat swapimg = swap_face_net_trt.process(target_img, source_face_embedding, target_landmark_5, buffers);
+    //imwrite("target_img.jpg", target_img);
+//#ifdef SHOW        
+    //std::cout << "swap_face_net.process end" <<std::endl;
+    //imwrite("swapimg.jpg", swapimg);
+//#endif    
+    
+    cv::Mat resultimg = enhance_face_net_trt.process(swapimg, target_landmark_5, buffers_enhance);
+    
+    imwrite("resultimgend.jpg", resultimg);
+
+    //if (!sample.build()) // 【主要】在build方法中构建网络，返回构建网络是否成功的状态
+    // {
+    //     cout<<"bad build"<<endl;
+    //     return 0;////sample::gLogger.reportFail(sampleTest);
+    // }
+    // //if (!sample.infer()) // 【主要】读取图像并进行推理，返回推理是否成功的状态
+    // {
+    //      cout<<"bad build"<<endl;
+    //     return 0;////sample::gLogger.reportFail(sampleTest);
+    // }
+	
+    //preciseStopwatch stopwatch;
+    auto totalElapsedTimeMs = stopwatch.elapsedTime<float, std::chrono::milliseconds>();
+    cout << "total time is " << totalElapsedTimeMs/1000 <<" S"<<endl;
+
+    return "resultimgend.jpg";
+
+    
+}
+
+////////////
+
 
 
 int main(int argc, char *argv[]) {
@@ -313,8 +602,8 @@ int main(int argc, char *argv[]) {
     std::cout << cr.sessionID << "/0.jpg" <<std::endl;
 
     
-    TestLeaderFollower();
-
+    //TestLeaderFollower();
+    cout << "++++++++++++++++++++++++++++++++++++" <<endl;
     //tensorrt part
     YoloV8Config config;
     std::string onnxModelPath;
@@ -322,6 +611,8 @@ int main(int argc, char *argv[]) {
     std::string inputImage = "1.jpg";
     std::string outputImage = "12.jpg";
     
+    cout << swap_faces("1.jpg", "12.jpg");
+    return 0;
     //std::string inputImage = "12.jpg";
     //std::string outputImage = "1.jpg";
     std::cout << "world 000..."<< std::endl;

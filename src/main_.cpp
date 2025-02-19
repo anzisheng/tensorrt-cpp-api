@@ -560,8 +560,11 @@ string swap_faces(string photo, string style){
 //#endif    
     
     cv::Mat resultimg = enhance_face_net_trt.process(swapimg, target_landmark_5, buffers_enhance);
-    
-    imwrite("resultimgend.jpg", resultimg);
+    string result = fmt::format("{}_{}.jpg",  photo.substr(0, photo.rfind(".")), style.substr(0, style.rfind(".")));
+    //imwrite("resultimgend.jpg", resultimg);
+    imwrite(result, resultimg);
+    return result;
+
 
     //if (!sample.build()) // 【主要】在build方法中构建网络，返回构建网络是否成功的状态
     // {
@@ -586,8 +589,116 @@ string swap_faces(string photo, string style){
 ////////////
 
 
+class TaskSocket
+{
+    public:
+    string photo;
+    string style;
+    TaskSocket(string photo_file, string style_file):photo(photo_file), style(style_file){}
+
+};
+std::queue<TaskSocket> messageQueue; // 消息队列
+std::mutex mtx; // 互斥锁
+std::condition_variable cvs; // 条件变量
+
+// 生产者线程函数，向消息队列中添加消息
+void producerFunction() {
+    for (int i = 1; i <= 12; ++i) {
+        string temp_style = fmt::format("{}.jpg", i);
+        
+        // 创建消息
+        TaskSocket message("c3.jpg", temp_style);
+
+        // 将消息添加到队列
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            messageQueue.push(message);
+            std::cout << "Produced message: " << message.photo<<message.style << std::endl;
+        }
+
+        // 通知等待的消费者线程
+        cvs.notify_one();
+
+        // 模拟一些工作
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+}
+
+// 消费者线程函数，从消息队列中获取消息
+void consumerFunction() {
+    while (true) {
+        // 等待消息队列非空
+        std::unique_lock<std::mutex> lock(mtx);
+        cvs.wait(lock, [] { return !messageQueue.empty(); });
+
+        // 从队列中获取消息
+        TaskSocket message = messageQueue.front();
+        messageQueue.pop();
+        std::cout << "Consumed message: " << message.photo <<" and " <<message.style << std::endl;
+        cout << swap_faces(message.photo,message.style) ;
+
+
+        // 检查是否为终止信号
+        // if (message.style == "12.jpg") {
+        //     break;
+        // }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+}
+///////////////////////////////////////////////////////////
+//websocket
+#include <websocketpp/config/asio_no_tls.hpp>
+
+#include <websocketpp/server.hpp>
+
+#include <iostream>
+
+typedef websocketpp::server<websocketpp::config::asio> server;
+
+using websocketpp::lib::placeholders::_1;
+using websocketpp::lib::placeholders::_2;
+using websocketpp::lib::bind;
+
+// pull out the type of messages sent by our config
+typedef server::message_ptr message_ptr;
+
+// Define a callback to handle incoming messages
+void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
+    std::cout << "on_message called with hdl: " << hdl.lock().get()
+              << " and message: " << msg->get_payload()
+              << std::endl;
+    std::cout << "The message from client:"<< std::endl;
+    std::cout << msg->get_payload()<<std::endl;
+    std::cout <<"hello I am server"<<std::endl;
+
+    // check for a special command to instruct the server to stop listening so
+    // it can be cleanly exited.
+    if (msg->get_payload() == "stop-listening") {
+        s->stop_listening();
+        return;
+    }
+
+    try {
+        s->send(hdl, msg->get_payload(), msg->get_opcode());
+    } catch (websocketpp::exception const & e) {
+        std::cout << "Echo failed because: "
+                  << "(" << e.what() << ")" << std::endl;
+    }
+}
+
+
+/////////////////////////////////////////////////
+
 
 int main(int argc, char *argv[]) {
+
+
+//////////
+
+
+
+////////
+
    
 	std::cout << "hello..."<< std::endl;
     //1. read the received message.
@@ -608,10 +719,20 @@ int main(int argc, char *argv[]) {
     YoloV8Config config;
     std::string onnxModelPath;
     std::string onnxModelPathLandmark;
+    //read input image from task_socket.
     std::string inputImage = "1.jpg";
-    std::string outputImage = "12.jpg";
+    std::string outputImage = "3.jpg";
     
-    cout << swap_faces("1.jpg", "12.jpg");
+        // 创建生产者线程和消费者线程
+    std::thread producer(producerFunction);
+    std::thread consumer(consumerFunction);
+
+    // 等待线程执行完成
+    producer.join();
+    consumer.join();
+    cout << "-----------------------"<<endl;
+    //cout << swap_faces(inputImage,outputImage) ;
+
     return 0;
     //std::string inputImage = "12.jpg";
     //std::string outputImage = "1.jpg";

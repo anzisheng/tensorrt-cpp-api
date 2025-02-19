@@ -29,6 +29,11 @@ find_package(OpenCV REQUIRED)
 find_package(fmt REQUIRED)
 find_package(nlohmann_json  REQUIRED)
 find_package(FMT REQUIRED)
+find_package(Boost)
+find_package(OpenSSL)
+find_package(websocketpp)
+find_package(jsoncpp)
+
 add_library(tensorrt_cpp_api
         STATIC                     #SHARED
         src/engine.cpp
@@ -41,12 +46,14 @@ add_library(tensorrt_cpp_api
         src/faceenhancer_trt.cpp
         #src/json_info.cpp
         )
-
+include_directories(/usr/include/jsoncpp)
 target_include_directories(tensorrt_cpp_api PUBLIC ${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${TensorRT_INCLUDE_DIRS} 
 /usr/local/TensorRT-8.6.1.6/include
 /usr/local/TensorRT-8.6.1.6/samples/common/
 include . include/interfaces)
 target_link_libraries(tensorrt_cpp_api PUBLIC ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TensorRT_LIBRARIES} fmt::fmt)
 
-add_executable(run_inference_benchmark src/main.cpp)
-target_link_libraries(run_inference_benchmark tensorrt_cpp_api fmt::fmt)
+#add_executable(run_inference_benchmark src/main.cpp)
+add_executable(server_face src/server_websocker.cpp)
+target_link_libraries(server_face PUBLIC tensorrt_cpp_api  fmt::fmt ${Boost_LIBS} ${OpenSSL_LIBS} nlohmann_json::nlohmann_json /usr/lib/x86_64-linux-gnu/libjsoncpp.so.1.9.5)
+#target_link_libraries(server_face /usr/lib/x86_64-linux-gnu/libjsoncpp.so.1.9.5)

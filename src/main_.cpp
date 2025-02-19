@@ -699,7 +699,7 @@ int main(int argc, char *argv[]) {
 
 ////////
 
-   
+  /*
 	std::cout << "hello..."<< std::endl;
     //1. read the received message.
     nlohmann::json commands;
@@ -712,7 +712,7 @@ int main(int argc, char *argv[]) {
     std::cout << cr.style_list[0].name <<std::endl;
     std::cout << cr.sessionID << "/0.jpg" <<std::endl;
 
-    
+    */ 
     //TestLeaderFollower();
     cout << "++++++++++++++++++++++++++++++++++++" <<endl;
     //tensorrt part

@@ -20,9 +20,9 @@
 # Fortran module files
 *.mod
 *.smod
-
+中
 # Compiled Static libraries
-*.lai
+*.lai 
 *.la
 *.a
 *.lib
@@ -40,6 +40,7 @@ cmake-build-*
 *.onnx
 
 build/
+build/test.json
 models/
 
 *.Identifier

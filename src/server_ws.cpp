@@ -107,6 +107,30 @@ std::mutex mtx; // 互斥锁
 std::condition_variable cvs; // 条件变量
 //////////////////////////
 
+// 生产者线程函数，向消息队列中添加消息
+void producerFunction(Json::Value &root) {
+    cout << "hello: " << root <<std::endl;
+    // for (int i = 1; i <= 12; ++i) {
+    //     string temp_style = fmt::format("{}.jpg", i);
+        
+    //     // 创建消息
+    //     TaskSocket message("c3.jpg", temp_style);
+
+    //     // 将消息添加到队列
+    //     {
+    //         std::lock_guard<std::mutex> lock(mtx);
+    //         messageQueue.push(message);
+    //         std::cout << "Produced message: " << message.photo<<message.style << std::endl;
+    //     }
+
+    //     // 通知等待的消费者线程
+    //     cvs.notify_one();
+
+    //     // 模拟一些工作
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    // }
+
+}
 
 // Define a callback to handle incoming messages
 void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
@@ -149,6 +173,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     {
         std::cout << root["styleName"][i]["name"].asString()<<std::endl;
     }
+    producerFunction(root);
     
 
     //json commands = json(msg->get_payload().data())["sessionID"];

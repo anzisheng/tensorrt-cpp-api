@@ -110,6 +110,23 @@ std::condition_variable cvs; // 条件变量
 // 生产者线程函数，向消息队列中添加消息
 void producerFunction(Json::Value &root) {
     cout << "hello: " << root <<std::endl;
+    int StyleNum = root["styleName"].size();
+    string PhotoName = root["sessionID"].asString()+"/0.jpg";
+    for (int i = 0; i < StyleNum; i++)
+    {
+        /* code */
+        TaskSocket message(PhotoName, root["styleName"][i]["name"].asString());
+
+        //将消息添加到队列
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            messageQueue.push(message);
+            std::cout << "Produced message: " << message.photo<<"," <<message.style << std::endl;
+        }
+
+    }
+    
+    
     // for (int i = 1; i <= 12; ++i) {
     //     string temp_style = fmt::format("{}.jpg", i);
         
@@ -173,8 +190,10 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     {
         std::cout << root["styleName"][i]["name"].asString()<<std::endl;
     }
-    producerFunction(root);
+    //producerFunction(root);
     
+    std::thread producer(producerFunction, std::ref(root));
+    producer.join();
 
     //json commands = json(msg->get_payload().data())["sessionID"];
     //std::cout << "the sessioId is :"<<commands.at("sessionID")<<std::endl;

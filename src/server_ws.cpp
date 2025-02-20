@@ -130,8 +130,8 @@ void producerFunction(Json::Value &root) {
          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
      }
 
-    //}
-}
+    }
+//}
 // 消费者线程函数，从消息队列中获取消息
 void consumerFunction() {
     while (true) {
@@ -150,7 +150,7 @@ void consumerFunction() {
 
         
         // 检查是否为终止信号
-         if (message.style == "3.jpg") {
+         if (message.style == "-10.jpg") {
              break;
          }
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));

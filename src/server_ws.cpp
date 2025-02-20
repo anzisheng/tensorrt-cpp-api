@@ -93,6 +93,19 @@ typedef server::message_ptr message_ptr;
     }
 
 //}
+///////////////////////
+class TaskSocket
+{
+    public:
+    string photo;
+    string style;
+    TaskSocket(string photo_file, string style_file):photo(photo_file), style(style_file){}
+
+};
+std::queue<TaskSocket> messageQueue; // 消息队列
+std::mutex mtx; // 互斥锁
+std::condition_variable cvs; // 条件变量
+//////////////////////////
 
 
 // Define a callback to handle incoming messages

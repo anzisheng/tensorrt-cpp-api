@@ -1,3 +1,31 @@
+#include "buffers.h"
+//#include "faceswap_fromMNist.h"
+#include "cmd_line_parser.h"
+#include "logger.h"
+#include "engine.h"
+#include <chrono>
+#include <opencv2/cudaimgproc.hpp>
+#include <opencv2/opencv.hpp>
+#include "yolov8.h"
+//#include "faceswap.h"
+#include "faceswap_trt.h"
+//#include "face68landmarks.h"
+#include "Face68Landmarks_trt.h"
+#include "facerecognizer_trt.h"
+#include "faceenhancer_trt.h"
+//#include "faceenhancer.h"
+//#include "faceenhancer_trt.h"
+//#include "faceenhancer_trt2.h"
+#include "faceswap_trt.h"
+#include "SampleOnnxMNIST.h"
+#include "nlohmann/json.hpp" 
+
+//#include "faceswap.h"
+#include "engine.h"
+#include "utile.h"
+#include "yolov8.h"
+#include <vector>
+
 #include "nlohmann/json.hpp"
 #include<string>
 #include<iostream>
@@ -107,6 +135,107 @@ std::mutex mtx; // 互斥锁
 std::condition_variable cvs; // 条件变量
 //////////////////////////
 
+//process
+string swap_faces(string photo, string style){
+        //tensorrt part
+    YoloV8Config config;
+    std::string onnxModelPath;
+    std::string onnxModelPathLandmark;
+    std::string inputImage = photo;// "1.jpg";
+    std::string outputImage = style;// "12.jpg";
+    
+    //std::cout << "world 000..."<< std::endl;
+    YoloV8 yoloV8("yoloface_8n.onnx", config); //    
+    Face68Landmarks_trt detect_68landmarks_net_trt("2dfan4.onnx", config);
+    FaceEmbdding_trt face_embedding_net_trt("arcface_w600k_r50.onnx", config);
+
+ 
+    //SwapFace swap_face_net("inswapper_128.onnx");
+    SwapFace_trt swap_face_net_trt("inswapper_128.onnx", config, 1);
+    samplesCommon::BufferManager buffers(swap_face_net_trt.m_trtEngine_faceswap->m_engine);
+    
+    //samplesCommon::Args args; // 接收用户传递参数的变量
+    //SampleOnnxMNIST sample(initializeSampleParams(args)); // 定义一个sample实例
+    //FaceEnhance enhance_face_net("gfpgan_1.4.onnx");
+    FaceEnhance_trt enhance_face_net_trt("gfpgan_1.4.onnx", config, 1);
+    //FaceEnhance_trt2 enhance_face_net_trt2("gfpgan_1.4.onnx", config);
+    samplesCommon::BufferManager buffers_enhance(enhance_face_net_trt.m_trtEngine_enhance->m_engine);    
+
+    //cout << "gfpgan_1.4.onnx trted"<<endl;
+    preciseStopwatch stopwatch;
+     // Read the input image
+    cv::Mat img = cv::imread(inputImage);
+    cv::Mat source_img = img.clone();
+
+    std::vector<Object>objects = yoloV8.detectObjects(img);
+    
+    // Draw the bounding boxes on the image
+#ifdef SHOW
+    yoloV8.drawObjectLabels(source_img, objects);
+    // Save the image to disk
+    const auto outputName = inputImage.substr(0, inputImage.find_last_of('.')) + "_annotated.jpg";
+    cv::imwrite(outputName, source_img);
+    std::cout << "Saved annotated image to: " << outputName << std::endl;
+#endif
+
+   
+    std::vector<cv::Point2f> face_landmark_5of68_trt;
+    //std::cout <<"begin to detect landmark"<<std::endl;
+    std::vector<cv::Point2f> face68landmarks_trt = detect_68landmarks_net_trt.detectlandmark(img, objects[0], face_landmark_5of68_trt);
+    #ifdef SHOW
+    //std::cout << "face68landmarks_trt size: " <<face68landmarks_trt.size()<<std::endl;
+    //std::cout << "face_landmark_5of68_trt size: " <<face_landmark_5of68_trt.size()<<std::endl;
+    for(int i =0; i < face68landmarks_trt.size(); i++)
+	{
+		//destFile2 << source_face_embedding[i] << " " ;
+        cout << face68landmarks_trt[i] << " ";
+	}    
+    for(int i =0; i < face_landmark_5of68_trt.size(); i++)
+	{
+		//destFile2 << source_face_embedding[i] << " " ;
+        cout << face_landmark_5of68_trt[i] << " ";
+	}
+    #endif
+
+    
+    vector<float> source_face_embedding = face_embedding_net_trt.detect(source_img, face_landmark_5of68_trt);
+
+       
+    cv::Mat target_img = cv::imread(outputImage);
+    cv::Mat target_img2 =target_img.clone();
+
+    std::vector<Object>objects_target = yoloV8.detectObjects(target_img);
+   
+   #ifdef SHOW
+    // Draw the bounding boxes on the image
+    yoloV8.drawObjectLabels(target_img2, objects_target);
+    cout << "Detected " << objects_target.size() << " objects" << std::endl;
+    // Save the image to disk
+    const auto outputName_target = outputImage.substr(0, outputImage.find_last_of('.')) + "_annotated.jpg";
+    cv::imwrite(outputName_target, target_img2);
+    std::cout << "Saved annotated image to: " << outputName_target << std::endl;
+#endif
+     
+	int position = 0; ////一张图片里可能有多个人脸，这里只考虑1个人脸的情况
+	vector<Point2f> target_landmark_5(5);    
+	detect_68landmarks_net_trt.detectlandmark(target_img, objects_target[position], target_landmark_5);
+    
+    cv::Mat swapimg = swap_face_net_trt.process(target_img, source_face_embedding, target_landmark_5, buffers);
+    //imwrite("target_img.jpg", target_img);
+//#ifdef SHOW        
+    //std::cout << "swap_face_net.process end" <<std::endl;
+    //imwrite("swapimg.jpg", swapimg);
+//#endif    
+    
+    cv::Mat resultimg = enhance_face_net_trt.process(swapimg, target_landmark_5, buffers_enhance);
+    string result = fmt::format("{}_{}.jpg",  photo.substr(0, photo.rfind(".")), style.substr(0, style.rfind(".")));
+    //imwrite("resultimgend.jpg", resultimg);
+    imwrite(result, resultimg);
+
+
+    return onnxModelPath;
+}
+
 // 生产者线程函数，向消息队列中添加消息
 void producerFunction(Json::Value &root) {
     cout << "hello: " << root <<std::endl;
@@ -144,8 +273,8 @@ void consumerFunction() {
         TaskSocket message = messageQueue.front();
         messageQueue.pop();
         std::cout << "Consumed message: " << message.photo <<" and " <<message.style << std::endl;
-        cout << "beginswap_faces(message.photo,message.style)" ;
-        //cout << swap_faces(message.photo,message.style) ;
+        cout << "begin swap_faces(message.photo,message.style)" ;
+        swap_faces(message.photo,message.style);
 
 
         
@@ -278,7 +407,7 @@ int main() {
     // JSON字符串
     //std::string jsonString = R"({"name":"John Doe","age":30,"isAlive":true,"address":{"city":"New York","state":"NY"}})";
     std::string jsonString = R"({	
-	"sessionID":"1111111111111111111112222222222222",
+	"sessionID":"2",
 	"styleName":[
 	{
 		"name" : "1.jpg"		

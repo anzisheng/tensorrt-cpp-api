@@ -472,7 +472,7 @@ string swap_faces(string photo, string style){
     
     //std::string inputImage = "12.jpg";
     //std::string outputImage = "1.jpg";
-    std::cout << "world 000..."<< std::endl;
+    //std::cout << "world 000..."<< std::endl;
     YoloV8 yoloV8("yoloface_8n.onnx", config); //
     std::cout << "what's the fuck..."<< std::endl;
     Face68Landmarks_trt detect_68landmarks_net_trt("2dfan4.onnx", config);
@@ -736,7 +736,7 @@ int main(int argc, char *argv[]) {
     return 0;
     //std::string inputImage = "12.jpg";
     //std::string outputImage = "1.jpg";
-    std::cout << "world 000..."<< std::endl;
+    //std::cout << "world 000..."<< std::endl;
     YoloV8 yoloV8("yoloface_8n.onnx", config); //
     std::cout << "what's the fuck..."<< std::endl;
     Face68Landmarks_trt detect_68landmarks_net_trt("2dfan4.onnx", config);

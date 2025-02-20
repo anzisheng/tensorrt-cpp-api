@@ -39,6 +39,7 @@ cv::cuda::GpuMat Engine<T>::resizeKeepAspectRatioPadRightBottom(const cv::cuda::
 template <typename T> void Engine<T>::getDeviceNames(std::vector<std::string> &deviceNames) {
     int numGPUs;
     cudaGetDeviceCount(&numGPUs);
+    std::cout << "cuda divice number:" << numGPUs <<std::endl;
 
     for (int device = 0; device < numGPUs; device++) {
         cudaDeviceProp prop;
@@ -56,7 +57,9 @@ template <typename T> std::string Engine<T>::serializeEngineOptions(const Option
     // on devices with the exact same GPU
     std::vector<std::string> deviceNames;
     getDeviceNames(deviceNames);
-
+    std::cout << "options.deviceIndex: " << options.deviceIndex <<std::endl;
+    std::cout << "deviceNames.size():  " << deviceNames.size() <<std::endl;
+    
     if (static_cast<size_t>(options.deviceIndex) >= deviceNames.size()) {
         auto msg = "Error, provided device index is out of range!";
         spdlog::error(msg);

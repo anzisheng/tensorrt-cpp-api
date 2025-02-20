@@ -9,9 +9,12 @@ bool Engine<T>::buildLoadNetwork(std::string onnxModelPath, const std::array<flo
     const auto engineName = serializeEngineOptions(m_options, onnxModelPath);
     const auto engineDir = std::filesystem::path(m_options.engineFileDir);
     std::filesystem::path enginePath = engineDir / engineName;
+    //enginePath = engineName;
     spdlog::info("Searching for engine file with name: {}", enginePath.string());
     std::cout << "enginePath: "<<enginePath <<std::endl;
-    if (Util::doesFileExist(enginePath)) {
+    //if (Util::doesFileExist(enginePath)) 
+    if (Util::doesFileExist(engineName)) //must to change
+    {
         spdlog::info("Engine found, not regenerating...");
     } else {
         if (!Util::doesFileExist(onnxModelPath)) {

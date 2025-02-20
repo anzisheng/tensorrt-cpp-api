@@ -125,7 +125,30 @@ void producerFunction(Json::Value &root) {
         }
 
     }
-    
+}
+// 消费者线程函数，从消息队列中获取消息
+void consumerFunction() {
+    while (true) {
+        // 等待消息队列非空
+        std::unique_lock<std::mutex> lock(mtx);
+        cvs.wait(lock, [] { return !messageQueue.empty(); });
+
+        // 从队列中获取消息
+        TaskSocket message = messageQueue.front();
+        messageQueue.pop();
+        std::cout << "Consumed message: " << message.photo <<" and " <<message.style << std::endl;
+        cout << "beginswap_faces(message.photo,message.style)" ;
+        //cout << swap_faces(message.photo,message.style) ;
+
+
+
+        // 检查是否为终止信号
+        if (message.style == "3.jpg") {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+}
     
     // for (int i = 1; i <= 12; ++i) {
     //     string temp_style = fmt::format("{}.jpg", i);
@@ -147,7 +170,7 @@ void producerFunction(Json::Value &root) {
     //     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     // }
 
-}
+
 
 // Define a callback to handle incoming messages
 void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
@@ -193,7 +216,12 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     //producerFunction(root);
     
     std::thread producer(producerFunction, std::ref(root));
+    std::thread consumer(consumerFunction);
+
+    // 等待线程执行完成
     producer.join();
+    consumer.join();
+    cout << "-----------------------"<<endl;
 
     //json commands = json(msg->get_payload().data())["sessionID"];
     //std::cout << "the sessioId is :"<<commands.at("sessionID")<<std::endl;

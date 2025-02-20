@@ -54,6 +54,6 @@ include . include/interfaces)
 target_link_libraries(tensorrt_cpp_api PUBLIC ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TensorRT_LIBRARIES} fmt::fmt)
 
 #add_executable(run_inference_benchmark src/main.cpp)
-add_executable(server_swap src/Json2Object.cpp)
-target_link_libraries(server_swap PUBLIC tensorrt_cpp_api  fmt::fmt ${Boost_LIBS} ${OpenSSL_LIBS} nlohmann_json::nlohmann_json ) #/usr/lib/x86_64-linux-gnu/libjsoncpp.so.1.9.5)
+add_executable(ss src/server_ws.cpp)
+target_link_libraries(ss PUBLIC tensorrt_cpp_api  fmt::fmt ${Boost_LIBS} ${OpenSSL_LIBS} nlohmann_json::nlohmann_json /usr/lib/x86_64-linux-gnu/libjsoncpp.so.1.9.5)
 #target_link_libraries(server_face /usr/lib/x86_64-linux-gnu/libjsoncpp.so.1.9.5)

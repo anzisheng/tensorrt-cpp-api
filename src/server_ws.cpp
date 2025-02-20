@@ -116,6 +116,9 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     // 创建一个错误信息字符串
     std::string errors;
     
+    //Json::Value val;
+    //Json::Reader reader;
+    
     // 解析JSON字符串
     std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     bool parsingSuccessful = reader->parse(jsonString.c_str(), jsonString.c_str() + jsonString.size(), &root, &errors);
@@ -127,6 +130,13 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     
     // 提取并打印数据
     std::cout << "Name: " << root["sessionID"].asString() << std::endl;
+    int numStyle = root["styleName"].size();
+    std::cout << "styleName size: " << numStyle << std::endl;
+    for(int i = 0; i < numStyle; i++)
+    {
+        std::cout << root["styleName"][i]["name"].asString()<<std::endl;
+    }
+    
 
     //json commands = json(msg->get_payload().data())["sessionID"];
     //std::cout << "the sessioId is :"<<commands.at("sessionID")<<std::endl;

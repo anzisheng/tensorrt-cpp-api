@@ -123,13 +123,20 @@ void producerFunction(Json::Value &root) {
             messageQueue.push(message);
             std::cout << "Produced message: " << message.photo<<"," <<message.style << std::endl;
         }
+           // 通知等待的消费者线程
+         cvs.notify_one();
 
-    }
+        // 模拟一些工作
+         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+     }
+
+    //}
 }
 // 消费者线程函数，从消息队列中获取消息
 void consumerFunction() {
     while (true) {
         // 等待消息队列非空
+        cout << "queue size:" << messageQueue.size() <<std::endl;
         std::unique_lock<std::mutex> lock(mtx);
         cvs.wait(lock, [] { return !messageQueue.empty(); });
 
@@ -141,11 +148,11 @@ void consumerFunction() {
         //cout << swap_faces(message.photo,message.style) ;
 
 
-
+        
         // 检查是否为终止信号
-        if (message.style == "3.jpg") {
-            break;
-        }
+         if (message.style == "3.jpg") {
+             break;
+         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 }

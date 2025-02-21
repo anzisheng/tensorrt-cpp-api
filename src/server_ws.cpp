@@ -134,7 +134,19 @@ std::queue<TaskSocket> messageQueue; // 消息队列
 std::mutex mtx; // 互斥锁
 std::condition_variable cvs; // 条件变量
 //////////////////////////
+class TaskResult
+{
+    public:
+    string result_name;
+    //string style;
+    TaskResult(string result):result_name(result){};
 
+};
+std::queue<TaskResult> resultQueue; // 消息队列
+std::mutex mtx_result; // 互斥锁
+std::condition_variable cvs_result; // 条件变量
+
+////////////////////////////
 //process
 string swap_faces(string photo, string style){
         //tensorrt part
@@ -233,7 +245,7 @@ string swap_faces(string photo, string style){
     imwrite(result, resultimg);
 
 
-    return onnxModelPath;
+    return result;
 }
 
 // 生产者线程函数，向消息队列中添加消息
@@ -279,8 +291,17 @@ void consumerFunction() {
          if (message.style == "-10.jpg") {
              break;
          }
-        swap_faces(message.photo,message.style);
+        string swap_result = swap_faces(message.photo,message.style);
 
+        TaskResult  reultMsg = TaskResult(swap_result);
+        //将消息添加到队列
+        {
+            std::lock_guard<std::mutex> lock(mtx_result);
+            resultQueue.push(reultMsg);
+            //std::cout << "swap_faces Produced result: " << reultMsg.result_name << std::endl;
+        }
+           // 通知等待的消费者线程
+         cvs_result.notify_one();
 
         
         // 检查是否为终止信号
@@ -379,6 +400,9 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
         return;
     }
 
+    while(!resultQueue.empty())
+    {
+
     try {
     // std::cout << "reuren message" <<std::endl;
     // nlohmann::json commands = msg->get_payload().data();
@@ -414,27 +438,31 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     //     std::cout << root["styleName"][i]["name"].asString()<<std::endl;
     // }
     // 创建一个Json::Value对象
-    Json::Value root;
- 
+    
+   std::cout << "resultQueue size :" <<resultQueue.size() << std::endl;
+    {
+        std::unique_lock<std::mutex> lock(mtx_result);
+        cvs_result.wait(lock, [] { return !resultQueue.empty(); });
+    }
+    Json::Value root; 
+    TaskResult message = resultQueue.front();
+    resultQueue.pop();
     // 向对象中添加数据
     root["result"] = "OK";
-   
- 
+    root["result_name"] = message.result_name; 
     // 创建一个Json::StreamWriterBuilder
     Json::StreamWriterBuilder writer;
- 
     // 将Json::Value对象转换为字符串
     std::string output = Json::writeString(writer, root);
  
     // 打印输出
-    std::cout << output << std::endl;
- 
-
-        //s->send(hdl, msg->get_payload(), msg->get_opcode());
+    //std::cout << output << std::endl;
+    //s->send(hdl, msg->get_payload(), msg->get_opcode());
         s->send(hdl, output, msg->get_opcode());
     } catch (websocketpp::exception const & e) {
         std::cout << "Echo failed because: "
                   << "(" << e.what() << ")" << std::endl;
+    }
     }
 }
 

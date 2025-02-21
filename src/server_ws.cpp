@@ -273,15 +273,20 @@ void consumerFunction() {
         TaskSocket message = messageQueue.front();
         messageQueue.pop();
         std::cout << "Consumed message: " << message.photo <<" and " <<message.style << std::endl;
-        cout << "begin swap_faces(message.photo,message.style)" ;
+//        cout << "begin swap_faces(message.photo,message.style)" ;
+  
+        // 检查是否为终止信号
+         if (message.style == "-10.jpg") {
+             break;
+         }
         swap_faces(message.photo,message.style);
 
 
         
         // 检查是否为终止信号
-         if (message.style == "-10.jpg") {
-             break;
-         }
+        //  if (message.style == "-11.jpg") {
+        //      break;
+        //  }
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 }

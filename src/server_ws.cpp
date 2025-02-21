@@ -256,7 +256,7 @@ void producerFunction(Json::Value &root) {
          cvs.notify_one();
 
         // 模拟一些工作
-         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+         std::this_thread::sleep_for(std::chrono::milliseconds(1));
      }
 
     }
@@ -287,7 +287,7 @@ void consumerFunction() {
         //  if (message.style == "-11.jpg") {
         //      break;
         //  }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
     
@@ -318,10 +318,10 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     std::cout << "on_message called with hdl: " << hdl.lock().get()
               << " and message: " << msg->get_payload()
               << std::endl;
-    std::cout << "The message from client:"<< std::endl;
+    //std::cout << "The message from client:"<< std::endl;
     std::cout << msg->get_payload()<<std::endl;
-    std::cout << "The message change to json:"<< std::endl;
-    std::cout << msg->get_payload().data()<<std::endl;
+    //std::cout << "The message change to json:"<< std::endl;
+    //std::cout << msg->get_payload().data()<<std::endl;
     nlohmann::json commands = msg->get_payload().data();
     std::cout << "to raw string:"<<commands << std::endl;
     std::string jsonString = commands;
@@ -370,7 +370,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     //order cr;
     //from_json(commands, cr);
 
-    std::cout <<"hello I am server"<<std::endl;
+    std::cout <<"waiting.... for post next order!"<<std::endl;
 
     // check for a special command to instruct the server to stop listening so
     // it can be cleanly exited.
@@ -380,7 +380,58 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     }
 
     try {
-        s->send(hdl, msg->get_payload(), msg->get_opcode());
+    // std::cout << "reuren message" <<std::endl;
+    // nlohmann::json commands = msg->get_payload().data();
+    // std::cout << "to raw string:"<<commands << std::endl;
+    // std::string jsonString = commands;
+    // // 创建一个Json::CharReaderBuilder
+    //Json::CharReaderBuilder builder;
+
+    // 创建一个Json::Value对象
+    // Json::Value root;
+ 
+    // // 创建一个错误信息字符串
+    // std::string errors;
+    
+    // //Json::Value val;
+    // //Json::Reader reader;
+    
+    // // 解析JSON字符串
+    // std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    // bool parsingSuccessful = reader->parse(jsonString.c_str(), jsonString.c_str() + jsonString.size(), &root, &errors);
+    // if (!parsingSuccessful) {
+    //         // 打印错误信息并退出
+    //         std::cout << "Error parsing JSON: " << errors << std::endl;
+    //         //return 1;
+    //     }
+    
+    // // 提取并打印数据
+    // std::cout << "Name: " << root["sessionID"].asString() << std::endl;
+    // int numStyle = root["styleName"].size();
+    // std::cout << "styleName size: " << numStyle << std::endl;
+    // for(int i = 0; i < numStyle; i++)
+    // {
+    //     std::cout << root["styleName"][i]["name"].asString()<<std::endl;
+    // }
+    // 创建一个Json::Value对象
+    Json::Value root;
+ 
+    // 向对象中添加数据
+    root["result"] = "OK";
+   
+ 
+    // 创建一个Json::StreamWriterBuilder
+    Json::StreamWriterBuilder writer;
+ 
+    // 将Json::Value对象转换为字符串
+    std::string output = Json::writeString(writer, root);
+ 
+    // 打印输出
+    std::cout << output << std::endl;
+ 
+
+        //s->send(hdl, msg->get_payload(), msg->get_opcode());
+        s->send(hdl, output, msg->get_opcode());
     } catch (websocketpp::exception const & e) {
         std::cout << "Echo failed because: "
                   << "(" << e.what() << ")" << std::endl;

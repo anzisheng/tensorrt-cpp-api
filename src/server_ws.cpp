@@ -400,7 +400,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
         return;
     }
 
-    while(!resultQueue.empty())
+    //while(!resultQueue.empty())
     {
 
     try {
@@ -448,8 +448,8 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     TaskResult message = resultQueue.front();
     resultQueue.pop();
     // 向对象中添加数据
-    root["result"] = "OK";
-    root["result_name"] = message.result_name; 
+    root["type"] = "Complete!";
+    //root["result_name"] = message.result_name; 
     // 创建一个Json::StreamWriterBuilder
     Json::StreamWriterBuilder writer;
     // 将Json::Value对象转换为字符串

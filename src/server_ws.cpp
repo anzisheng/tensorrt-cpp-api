@@ -277,7 +277,7 @@ void producerFunction(Json::Value &root) {
     }
 //}
 // 消费者线程函数，从消息队列中获取消息
-void consumerFunction() {
+void consumerFunction(server* s, websocketpp::connection_hdl hdl,message_ptr msg) {
     preciseStopwatch stopwatch;
     while (true) {
         // 等待消息队列非空
@@ -300,12 +300,12 @@ void consumerFunction() {
         TaskResult  reultMsg = TaskResult(swap_result);        
         //将消息添加到队列
         {
-            std::lock_guard<std::mutex> lock(mtx_result);
-            resultQueue.push(reultMsg);
+            //std::lock_guard<std::mutex> lock(mtx_result);
+            //resultQueue.push(reultMsg);
             //std::cout << "swap_faces Produced result: " << reultMsg.result_name << std::endl;
         }
            // 通知等待的消费者线程
-         cvs_result.notify_one();
+         //cvs_result.notify_one();
 
         
         // 检查是否为终止信号
@@ -313,6 +313,21 @@ void consumerFunction() {
         //      break;
         //  }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        Json::Value root; 
+        //TaskResult message = resultQueue.front();
+        //resultQueue.pop();
+        // 向对象中添加数据
+        root["type"] = "Generating!";
+        root["result_name"] = swap_result;//message.result_name; 
+        // 创建一个Json::StreamWriterBuilder
+        Json::StreamWriterBuilder writer;
+        // 将Json::Value对象转换为字符串
+        std::string output = Json::writeString(writer, root);
+    
+        // 打印输出
+        //std::cout << output << std::endl;
+        //s->send(hdl, msg->get_payload(), msg->get_opcode());
+            s->send(hdl, output, msg->get_opcode());
     }
     cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++=================================="<<endl;
     auto totalElapsedTimeMs = stopwatch.elapsedTime<float, std::chrono::milliseconds>();
@@ -385,7 +400,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     //producerFunction(root);
     
     std::thread producer(producerFunction, std::ref(root));
-    std::thread consumer(consumerFunction);
+    std::thread consumer(consumerFunction, s, hdl,  msg);
 
     // 等待线程执行完成
     producer.join();

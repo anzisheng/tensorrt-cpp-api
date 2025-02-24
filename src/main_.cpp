@@ -603,11 +603,11 @@ std::condition_variable cvs; // 条件变量
 
 // 生产者线程函数，向消息队列中添加消息
 void producerFunction() {
-    for (int i = 1; i <= 12; ++i) {
+    for (int i = 1; i <= 10; ++i) {
         string temp_style = fmt::format("{}.jpg", i);
         
         // 创建消息
-        TaskSocket message("c3.jpg", temp_style);
+        TaskSocket message("0.jpg", temp_style);
 
         // 将消息添加到队列
         {
@@ -620,12 +620,13 @@ void producerFunction() {
         cvs.notify_one();
 
         // 模拟一些工作
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 }
 
 // 消费者线程函数，从消息队列中获取消息
 void consumerFunction() {
+    preciseStopwatch stopwatch;
     while (true) {
         // 等待消息队列非空
         std::unique_lock<std::mutex> lock(mtx);
@@ -639,11 +640,14 @@ void consumerFunction() {
 
 
         // 检查是否为终止信号
-        // if (message.style == "12.jpg") {
-        //     break;
-        // }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        if (message.style == "-10.jpg") {
+            break;
+        }
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
+    cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++=================================="<<endl;
+    auto totalElapsedTimeMs = stopwatch.elapsedTime<float, std::chrono::milliseconds>();
+    cout << "total time is " << totalElapsedTimeMs/1000 <<" S"<<endl;
 }
 ///////////////////////////////////////////////////////////
 //websocket
@@ -669,7 +673,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
               << std::endl;
     std::cout << "The message from client:"<< std::endl;
     std::cout << msg->get_payload()<<std::endl;
-    std::cout <<"hello I am server"<<std::endl;
+    //std::cout <<"hello I am server"<<std::endl;
 
     // check for a special command to instruct the server to stop listening so
     // it can be cleanly exited.

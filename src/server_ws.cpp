@@ -240,8 +240,11 @@ string swap_faces(string photo, string style){
 //#endif    
     
     cv::Mat resultimg = enhance_face_net_trt.process(swapimg, target_landmark_5, buffers_enhance);
+    cout << "testing:::: photo::::"<< photo<<"substr: "<<photo.substr(0, photo.rfind("."))<<endl;
     string result = fmt::format("{}_{}.jpg",  photo.substr(0, photo.rfind(".")), style.substr(0, style.rfind(".")));
     //imwrite("resultimgend.jpg", resultimg);
+    cout << "generating:::: ::::"<< result<<endl;
+
     imwrite(result, resultimg);
 
 
@@ -275,6 +278,7 @@ void producerFunction(Json::Value &root) {
 //}
 // 消费者线程函数，从消息队列中获取消息
 void consumerFunction() {
+    preciseStopwatch stopwatch;
     while (true) {
         // 等待消息队列非空
         cout << "queue size:" << messageQueue.size() <<std::endl;
@@ -292,8 +296,8 @@ void consumerFunction() {
              break;
          }
         string swap_result = swap_faces(message.photo,message.style);
-
-        TaskResult  reultMsg = TaskResult(swap_result);
+        cout << "swap_result:   " << swap_result <<endl;
+        TaskResult  reultMsg = TaskResult(swap_result);        
         //将消息添加到队列
         {
             std::lock_guard<std::mutex> lock(mtx_result);
@@ -310,6 +314,9 @@ void consumerFunction() {
         //  }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+    cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++=================================="<<endl;
+    auto totalElapsedTimeMs = stopwatch.elapsedTime<float, std::chrono::milliseconds>();
+    cout << "total time is " << totalElapsedTimeMs/1000 <<" S"<<endl;
 }
     
     // for (int i = 1; i <= 12; ++i) {
@@ -400,7 +407,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
         return;
     }
 
-    //while(!resultQueue.empty())
+    while(!resultQueue.empty())
     {
 
     try {
@@ -448,8 +455,8 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     TaskResult message = resultQueue.front();
     resultQueue.pop();
     // 向对象中添加数据
-    root["type"] = "Complete!";
-    //root["result_name"] = message.result_name; 
+    root["type"] = "Generating!";
+    root["result_name"] = message.result_name; 
     // 创建一个Json::StreamWriterBuilder
     Json::StreamWriterBuilder writer;
     // 将Json::Value对象转换为字符串
@@ -464,6 +471,15 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
                   << "(" << e.what() << ")" << std::endl;
     }
     }
+    Json::Value root2;
+    root2["type"] = "Complete!";
+    //root["result_name"] = message.result_name; 
+    Json::StreamWriterBuilder writer2;
+    // 将Json::Value对象转换为字符串
+    std::string output2 = Json::writeString(writer2, root2);
+    s->send(hdl, output2, msg->get_opcode());    
+ 
+
 }
 
 int main() {

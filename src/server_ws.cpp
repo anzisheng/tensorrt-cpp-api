@@ -299,11 +299,11 @@ void consumerFunction(server* s, websocketpp::connection_hdl hdl,message_ptr msg
         cout << "swap_result:   " << swap_result <<endl;
         TaskResult  reultMsg = TaskResult(swap_result);        
         //将消息添加到队列
-        {
+        //{
             //std::lock_guard<std::mutex> lock(mtx_result);
             //resultQueue.push(reultMsg);
             //std::cout << "swap_faces Produced result: " << reultMsg.result_name << std::endl;
-        }
+        //}
            // 通知等待的消费者线程
          //cvs_result.notify_one();
 
@@ -312,12 +312,12 @@ void consumerFunction(server* s, websocketpp::connection_hdl hdl,message_ptr msg
         //  if (message.style == "-11.jpg") {
         //      break;
         //  }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1));
         Json::Value root; 
         //TaskResult message = resultQueue.front();
         //resultQueue.pop();
         // 向对象中添加数据
-        root["type"] = "Generating!";
+        root["type"] = "Generating>>>>!";
         root["result_name"] = swap_result;//message.result_name; 
         // 创建一个Json::StreamWriterBuilder
         Json::StreamWriterBuilder writer;
@@ -327,7 +327,8 @@ void consumerFunction(server* s, websocketpp::connection_hdl hdl,message_ptr msg
         // 打印输出
         //std::cout << output << std::endl;
         //s->send(hdl, msg->get_payload(), msg->get_opcode());
-            s->send(hdl, output, msg->get_opcode());
+        s->send(hdl, output, msg->get_opcode());
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++=================================="<<endl;
     auto totalElapsedTimeMs = stopwatch.elapsedTime<float, std::chrono::milliseconds>();
@@ -421,7 +422,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
         s->stop_listening();
         return;
     }
-
+    /*
     while(!resultQueue.empty())
     {
 
@@ -470,7 +471,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     TaskResult message = resultQueue.front();
     resultQueue.pop();
     // 向对象中添加数据
-    root["type"] = "Generating!";
+    root["type"] = "Generating.....!";
     root["result_name"] = message.result_name; 
     // 创建一个Json::StreamWriterBuilder
     Json::StreamWriterBuilder writer;
@@ -485,7 +486,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
         std::cout << "Echo failed because: "
                   << "(" << e.what() << ")" << std::endl;
     }
-    }
+    }*/
     Json::Value root2;
     root2["type"] = "Complete!";
     //root["result_name"] = message.result_name; 

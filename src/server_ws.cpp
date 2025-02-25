@@ -54,6 +54,19 @@ using websocketpp::lib::bind;
 typedef server::message_ptr message_ptr;
 
 
+#include <websocketpp/config/asio.hpp>
+#include <websocketpp/server.hpp>
+#include <iostream>
+typedef websocketpp::server<websocketpp::config::asio> server;
+typedef websocketpp::server<websocketpp::config::asio_tls> server_tls;
+typedef websocketpp::config::asio::message_type::ptr message_ptr;
+typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> context_ptr;
+
+using websocketpp::lib::placeholders::_1;
+using websocketpp::lib::placeholders::_2;
+using websocketpp::lib::bind;
+
+
 //namespace ns
 //{
     class style
@@ -399,7 +412,7 @@ void consumerFunction(server* s, websocketpp::connection_hdl hdl,message_ptr msg
 
 
 // Define a callback to handle incoming messages
-void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
+void on_message111(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     std::cout << "on_message called with hdl: " << hdl.lock().get()
               << " and message: " << msg->get_payload()
               << std::endl;
@@ -541,7 +554,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
 
 }
 
-int main() {
+int main111() {
 
     // // 创建一个Json::Value对象
     // Json::Value root;
@@ -622,7 +635,7 @@ int main() {
         echo_server.init_asio();
 
         // Register our message handler
-        echo_server.set_message_handler(bind(&on_message,&echo_server,::_1,::_2));
+        echo_server.set_message_handler(bind(&on_message111,&echo_server,::_1,::_2));
 
         // Listen on port 9002
         echo_server.listen(9002);
@@ -637,5 +650,136 @@ int main() {
     } catch (...) {
         std::cout << "other exception" << std::endl;
     }
+}
+
+void on_message_ws(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
+    std::cout << "on_message_ws called with hdl: " << hdl.lock().get() << " and message: " << msg->get_payload() << std::endl;
+
+    try {
+        s->send(hdl, msg->get_payload(), msg->get_opcode());
+    } catch (websocketpp::exception const & e) {
+        std::cout << "Echo failed because: "
+                  << "(" << e.what() << ")" << std::endl;
+    }
+}
+void on_message_wss(server_tls* s, websocketpp::connection_hdl hdl, message_ptr msg) {
+    std::cout << "on_message_wss called with hdl: " << hdl.lock().get()
+              << " and message: " << msg->get_payload()
+              << std::endl;
+
+    try {
+        s->send(hdl, msg->get_payload(), msg->get_opcode());
+    } catch (websocketpp::exception const & e) {
+        std::cout << "Echo failed because: "
+                  << "(" << e.what() << ")" << std::endl;
+    }
+}
+void on_open_wss(server_tls* s, websocketpp::connection_hdl hdl) {
+    server_tls::connection_ptr con = s->get_con_from_hdl(hdl);
+    
+    std::cout << "on_open_wss client addr:" << con->get_remote_endpoint() << std::endl;
+}
+void on_close_wss(server_tls* s, websocketpp::connection_hdl hdl) {
+    std::cout << "on_close_wss" << std::endl;
+}
+
+
+std::string get_password() {
+    return "test";
+}
+// See https://wiki.mozilla.org/Security/Server_Side_TLS for more details about
+// the TLS modes. The code below demonstrates how to implement both the modern
+enum tls_mode {
+    MOZILLA_INTERMEDIATE = 1,
+    MOZILLA_MODERN = 2
+};
+
+context_ptr on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl) {
+    std::cout << "on_tls_init " << std::endl;
+    namespace asio = websocketpp::lib::asio;
+
+    std::cout << "on_tls_init called with hdl: " << hdl.lock().get() << std::endl;
+    std::cout << "using TLS mode: " << (mode == MOZILLA_MODERN ? "Mozilla Modern" : "Mozilla Intermediate") << std::endl;
+
+    context_ptr ctx = websocketpp::lib::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
+    try {
+        if (mode == MOZILLA_MODERN) {
+            // Modern disables TLSv1
+            ctx->set_options(asio::ssl::context::default_workarounds |
+                             asio::ssl::context::no_sslv2 |
+                             asio::ssl::context::no_sslv3 |
+                             asio::ssl::context::no_tlsv1 |
+                             asio::ssl::context::single_dh_use);
+        } else {
+            ctx->set_options(asio::ssl::context::default_workarounds |
+                             asio::ssl::context::no_sslv2 |
+                             asio::ssl::context::no_sslv3 |
+                             asio::ssl::context::single_dh_use);
+        }
+        // ctx->set_password_callback(bind(&get_password));
+        ctx->use_certificate_chain_file("server.pem");
+        ctx->use_private_key_file("server.pem", asio::ssl::context::pem);
+        
+        // Example method of generating this file:
+        // `openssl dhparam -out dh.pem 2048`
+        // Mozilla Intermediate suggests 1024 as the minimum size to use
+        // Mozilla Modern suggests 2048 as the minimum size to use.
+        // ctx->use_tmp_dh_file("dh.pem");
+        
+        std::string ciphers;
+        
+        if (mode == MOZILLA_MODERN) {
+            ciphers = "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK";
+        } else {
+            ciphers = "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA";
+        }
+        
+        if (SSL_CTX_set_cipher_list(ctx->native_handle() , ciphers.c_str()) != 1) {
+            std::cout << "Error setting cipher list" << std::endl;
+        }
+    } catch (std::exception& e) {
+        std::cout << "Exception: " << e.what() << std::endl;
+    }
+    return ctx;
+}
+
+int main() {
+    // Create a server endpoint
+    server ws_server;
+    server_tls wss_server;
+    wss_server.set_access_channels(websocketpp::log::alevel::all);
+    wss_server.set_error_channels(websocketpp::log::alevel::all);
+
+    // Initialize ASIO
+    ws_server.init_asio();
+    wss_server.init_asio();
+
+    // Register our message handler
+    ws_server.set_message_handler(bind(&on_message_ws,&ws_server,::_1,::_2));
+
+    wss_server.set_message_handler(bind(&on_message_wss,&wss_server,::_1,::_2));
+    wss_server.set_open_handler(bind(&on_open_wss,&wss_server,::_1));
+    wss_server.set_close_handler(bind(&on_close_wss,&wss_server,::_1));
+    wss_server.set_tls_init_handler(bind(&on_tls_init,MOZILLA_INTERMEDIATE,::_1));
+
+
+    std::cout << "listen..." << std::endl;
+    // Listen on port 9002
+    ws_server.listen(9002);
+    wss_server.listen(9003);
+
+    // Start the server accept loop
+    std::cout << "accept..." << std::endl;
+    ws_server.start_accept();
+    wss_server.start_accept();
+
+    // Start the ASIO io_service run loop
+    std::cout << "run..." << std::endl;
+    websocketpp::lib::thread ws_thread(&server::run, &ws_server);
+    websocketpp::lib::thread wss_thread(&server_tls::run, &wss_server);
+    while(1){
+        sleep(1);
+    }
+    std::cout << "run over" << std::endl;
 }
 

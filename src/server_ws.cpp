@@ -148,6 +148,11 @@ std::condition_variable cvs_result; // 条件变量
 
 ////////////////////////////
 //process
+YoloV8* yoloV8 = NULL;
+Face68Landmarks_trt* detect_68landmarks_net_trt = NULL;
+FaceEmbdding_trt* face_embedding_net_trt = NULL;
+SwapFace_trt* swap_face_net_trt = NULL;
+
 string swap_faces(string photo, string style){
         //tensorrt part
     YoloV8Config config;
@@ -157,14 +162,18 @@ string swap_faces(string photo, string style){
     std::string outputImage = style;// "12.jpg";
     
     //std::cout << "world 000..."<< std::endl;
-    YoloV8 yoloV8("yoloface_8n.onnx", config); //    
-    Face68Landmarks_trt detect_68landmarks_net_trt("2dfan4.onnx", config);
-    FaceEmbdding_trt face_embedding_net_trt("arcface_w600k_r50.onnx", config);
+    if(yoloV8 == NULL)
+        yoloV8 = new YoloV8("yoloface_8n.onnx", config); //    
+    
+    if(detect_68landmarks_net_trt == NULL)
+        detect_68landmarks_net_trt =  new Face68Landmarks_trt("2dfan4.onnx", config);
+    face_embedding_net_trt = new FaceEmbdding_trt("arcface_w600k_r50.onnx", config);
 
  
     //SwapFace swap_face_net("inswapper_128.onnx");
-    SwapFace_trt swap_face_net_trt("inswapper_128.onnx", config, 1);
-    samplesCommon::BufferManager buffers(swap_face_net_trt.m_trtEngine_faceswap->m_engine);
+    if(swap_face_net_trt == NULL)
+    swap_face_net_trt = new SwapFace_trt("inswapper_128.onnx", config, 1);
+    samplesCommon::BufferManager buffers(swap_face_net_trt->m_trtEngine_faceswap->m_engine);
     
     //samplesCommon::Args args; // 接收用户传递参数的变量
     //SampleOnnxMNIST sample(initializeSampleParams(args)); // 定义一个sample实例
@@ -179,7 +188,7 @@ string swap_faces(string photo, string style){
     cv::Mat img = cv::imread(inputImage);
     cv::Mat source_img = img.clone();
 
-    std::vector<Object>objects = yoloV8.detectObjects(img);
+    std::vector<Object>objects = yoloV8->detectObjects(img);
     
     // Draw the bounding boxes on the image
 #ifdef SHOW
@@ -193,7 +202,7 @@ string swap_faces(string photo, string style){
    
     std::vector<cv::Point2f> face_landmark_5of68_trt;
     //std::cout <<"begin to detect landmark"<<std::endl;
-    std::vector<cv::Point2f> face68landmarks_trt = detect_68landmarks_net_trt.detectlandmark(img, objects[0], face_landmark_5of68_trt);
+    std::vector<cv::Point2f> face68landmarks_trt = detect_68landmarks_net_trt->detectlandmark(img, objects[0], face_landmark_5of68_trt);
     #ifdef SHOW
     //std::cout << "face68landmarks_trt size: " <<face68landmarks_trt.size()<<std::endl;
     //std::cout << "face_landmark_5of68_trt size: " <<face_landmark_5of68_trt.size()<<std::endl;
@@ -210,13 +219,13 @@ string swap_faces(string photo, string style){
     #endif
 
     
-    vector<float> source_face_embedding = face_embedding_net_trt.detect(source_img, face_landmark_5of68_trt);
+    vector<float> source_face_embedding = face_embedding_net_trt->detect(source_img, face_landmark_5of68_trt);
 
        
     cv::Mat target_img = cv::imread(outputImage);
     cv::Mat target_img2 =target_img.clone();
 
-    std::vector<Object>objects_target = yoloV8.detectObjects(target_img);
+    std::vector<Object>objects_target = yoloV8->detectObjects(target_img);
    
    #ifdef SHOW
     // Draw the bounding boxes on the image
@@ -230,9 +239,9 @@ string swap_faces(string photo, string style){
      
 	int position = 0; ////一张图片里可能有多个人脸，这里只考虑1个人脸的情况
 	vector<Point2f> target_landmark_5(5);    
-	detect_68landmarks_net_trt.detectlandmark(target_img, objects_target[position], target_landmark_5);
+	detect_68landmarks_net_trt->detectlandmark(target_img, objects_target[position], target_landmark_5);
     
-    cv::Mat swapimg = swap_face_net_trt.process(target_img, source_face_embedding, target_landmark_5, buffers);
+    cv::Mat swapimg = swap_face_net_trt->process(target_img, source_face_embedding, target_landmark_5, buffers);
     //imwrite("target_img.jpg", target_img);
 //#ifdef SHOW        
     //std::cout << "swap_face_net.process end" <<std::endl;

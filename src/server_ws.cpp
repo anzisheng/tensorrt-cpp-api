@@ -154,7 +154,7 @@ FaceEmbdding_trt* face_embedding_net_trt = NULL;
 SwapFace_trt* swap_face_net_trt = NULL;
 FaceEnhance_trt* enhance_face_net_trt = NULL;
 
-string swap_faces(string photo, string style){
+string swap_faces(string photo, string style, server* s, websocketpp::connection_hdl hdl,message_ptr msg){
         //tensorrt part
     YoloV8Config config;
     std::string onnxModelPath;
@@ -258,6 +258,23 @@ string swap_faces(string photo, string style){
 
     imwrite(result, resultimg);
 
+    Json::Value root; 
+    //TaskResult message = resultQueue.front();
+    //resultQueue.pop();
+    // 向对象中添加数据
+    root["type"] = "Generating OOOO!";
+    root["result_name"] = result;//message.result_name; 
+    // 创建一个Json::StreamWriterBuilder
+    Json::StreamWriterBuilder writer;
+    // 将Json::Value对象转换为字符串
+    std::string output = Json::writeString(writer, root);
+
+    // 打印输出
+    //std::cout << output << std::endl;
+    //s->send(hdl, msg->get_payload(), msg->get_opcode());
+    s->send(hdl, output, msg->get_opcode());
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
 
     return result;
 }
@@ -306,7 +323,7 @@ void consumerFunction(server* s, websocketpp::connection_hdl hdl,message_ptr msg
          if (message.style == "-10.jpg") {
              break;
          }
-        string swap_result = swap_faces(message.photo,message.style);
+        string swap_result = swap_faces(message.photo,message.style, s, hdl, msg);
         cout << "swap_result:   " << swap_result <<endl;
         TaskResult  reultMsg = TaskResult(swap_result);        
         //将消息添加到队列
@@ -324,22 +341,22 @@ void consumerFunction(server* s, websocketpp::connection_hdl hdl,message_ptr msg
         //      break;
         //  }
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        Json::Value root; 
+        //Json::Value root; 
         //TaskResult message = resultQueue.front();
         //resultQueue.pop();
         // 向对象中添加数据
-        root["type"] = "Generating>>>>!";
-        root["result_name"] = swap_result;//message.result_name; 
-        // 创建一个Json::StreamWriterBuilder
-        Json::StreamWriterBuilder writer;
-        // 将Json::Value对象转换为字符串
-        std::string output = Json::writeString(writer, root);
+        // root["type"] = "Generating>>>>!";
+        // root["result_name"] = swap_result;//message.result_name; 
+        // // 创建一个Json::StreamWriterBuilder
+        // Json::StreamWriterBuilder writer;
+        // // 将Json::Value对象转换为字符串
+        // std::string output = Json::writeString(writer, root);
     
-        // 打印输出
-        //std::cout << output << std::endl;
-        //s->send(hdl, msg->get_payload(), msg->get_opcode());
-        s->send(hdl, output, msg->get_opcode());
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        // // 打印输出
+        // //std::cout << output << std::endl;
+        // //s->send(hdl, msg->get_payload(), msg->get_opcode());
+        // s->send(hdl, output, msg->get_opcode());
+        // std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++=================================="<<endl;
     auto totalElapsedTimeMs = stopwatch.elapsedTime<float, std::chrono::milliseconds>();

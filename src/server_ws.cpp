@@ -152,6 +152,7 @@ YoloV8* yoloV8 = NULL;
 Face68Landmarks_trt* detect_68landmarks_net_trt = NULL;
 FaceEmbdding_trt* face_embedding_net_trt = NULL;
 SwapFace_trt* swap_face_net_trt = NULL;
+FaceEnhance_trt* enhance_face_net_trt = NULL;
 
 string swap_faces(string photo, string style){
         //tensorrt part
@@ -178,9 +179,10 @@ string swap_faces(string photo, string style){
     //samplesCommon::Args args; // 接收用户传递参数的变量
     //SampleOnnxMNIST sample(initializeSampleParams(args)); // 定义一个sample实例
     //FaceEnhance enhance_face_net("gfpgan_1.4.onnx");
-    FaceEnhance_trt enhance_face_net_trt("gfpgan_1.4.onnx", config, 1);
+    if(enhance_face_net_trt == NULL)
+    enhance_face_net_trt = new FaceEnhance_trt("gfpgan_1.4.onnx", config, 1);
     //FaceEnhance_trt2 enhance_face_net_trt2("gfpgan_1.4.onnx", config);
-    samplesCommon::BufferManager buffers_enhance(enhance_face_net_trt.m_trtEngine_enhance->m_engine);    
+    samplesCommon::BufferManager buffers_enhance(enhance_face_net_trt->m_trtEngine_enhance->m_engine);    
 
     //cout << "gfpgan_1.4.onnx trted"<<endl;
     preciseStopwatch stopwatch;
@@ -248,7 +250,7 @@ string swap_faces(string photo, string style){
     //imwrite("swapimg.jpg", swapimg);
 //#endif    
     
-    cv::Mat resultimg = enhance_face_net_trt.process(swapimg, target_landmark_5, buffers_enhance);
+    cv::Mat resultimg = enhance_face_net_trt->process(swapimg, target_landmark_5, buffers_enhance);
     cout << "testing:::: photo::::"<< photo<<"substr: "<<photo.substr(0, photo.rfind("."))<<endl;
     string result = fmt::format("{}_{}.jpg",  photo.substr(0, photo.rfind(".")), style.substr(0, style.rfind(".")));
     //imwrite("resultimgend.jpg", resultimg);

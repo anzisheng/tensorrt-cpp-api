@@ -154,6 +154,15 @@ FaceEmbdding_trt* face_embedding_net_trt = NULL;
 SwapFace_trt* swap_face_net_trt = NULL;
 FaceEnhance_trt* enhance_face_net_trt = NULL;
 
+void free_faces()
+{
+    if(yoloV8) delete yoloV8;
+    if(detect_68landmarks_net_trt) delete detect_68landmarks_net_trt;
+    if(face_embedding_net_trt) delete face_embedding_net_trt;
+    if(swap_face_net_trt) delete swap_face_net_trt;
+    if(enhance_face_net_trt) delete enhance_face_net_trt;
+    //if(yoloV8) delete yoloV8;
+}
 string swap_faces(string photo, string style, server* s, websocketpp::connection_hdl hdl,message_ptr msg){
         //tensorrt part
     YoloV8Config config;
@@ -274,7 +283,8 @@ string swap_faces(string photo, string style, server* s, websocketpp::connection
     //s->send(hdl, msg->get_payload(), msg->get_opcode());
     s->send(hdl, output, msg->get_opcode());
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
+    
+    
 
     return result;
 }
@@ -358,6 +368,8 @@ void consumerFunction(server* s, websocketpp::connection_hdl hdl,message_ptr msg
         // s->send(hdl, output, msg->get_opcode());
         // std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+    //free the space.
+    free_faces();
     cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++=================================="<<endl;
     auto totalElapsedTimeMs = stopwatch.elapsedTime<float, std::chrono::milliseconds>();
     cout << "total time is " << totalElapsedTimeMs/1000 <<" S"<<endl;
@@ -391,11 +403,11 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
               << " and message: " << msg->get_payload()
               << std::endl;
     //std::cout << "The message from client:"<< std::endl;
-    std::cout << msg->get_payload()<<std::endl;
+    //std::cout << msg->get_payload()<<std::endl;
     //std::cout << "The message change to json:"<< std::endl;
     //std::cout << msg->get_payload().data()<<std::endl;
     nlohmann::json commands = msg->get_payload().data();
-    std::cout << "to raw string:"<<commands << std::endl;
+    //std::cout << "to raw string:"<<commands << std::endl;
     std::string jsonString = commands;
     // 创建一个Json::CharReaderBuilder
     Json::CharReaderBuilder builder;
@@ -419,28 +431,36 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
         }
     
     // 提取并打印数据
-    std::cout << "Name: " << root["sessionID"].asString() << std::endl;
-    int numStyle = root["styleName"].size();
-    std::cout << "styleName size: " << numStyle << std::endl;
-    for(int i = 0; i < numStyle; i++)
-    {
-        std::cout << root["styleName"][i]["name"].asString()<<std::endl;
-    }
+    //std::cout << "Name: " << root["sessionID"].asString() << std::endl;
+    // int numStyle = root["styleName"].size();
+    // std::cout << "styleName size: " << numStyle << std::endl;
+    // for(int i = 0; i < numStyle; i++)
+    // {
+    //     std::cout << root["styleName"][i]["name"].asString()<<std::endl;
+    // }
     //producerFunction(root);
     
     std::thread producer(producerFunction, std::ref(root));
     std::thread consumer(consumerFunction, s, hdl,  msg);
 
     // 等待线程执行完成
-    producer.join();
     consumer.join();
-    cout << "-----------------------"<<endl;
+    producer.join();
+    
+    //cout << "-----------------------"<<endl;
 
     //json commands = json(msg->get_payload().data())["sessionID"];
     //std::cout << "the sessioId is :"<<commands.at("sessionID")<<std::endl;
 
     //order cr;
     //from_json(commands, cr);
+    Json::Value root2;
+    root2["type"] = "Complete!";
+    //root["result_name"] = message.result_name; 
+    Json::StreamWriterBuilder writer2;
+    // 将Json::Value对象转换为字符串
+    std::string output2 = Json::writeString(writer2, root2);
+    s->send(hdl, output2, msg->get_opcode()); 
 
     std::cout <<"waiting.... for post next order!"<<std::endl;
 
@@ -515,13 +535,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
                   << "(" << e.what() << ")" << std::endl;
     }
     }*/
-    Json::Value root2;
-    root2["type"] = "Complete!";
-    //root["result_name"] = message.result_name; 
-    Json::StreamWriterBuilder writer2;
-    // 将Json::Value对象转换为字符串
-    std::string output2 = Json::writeString(writer2, root2);
-    s->send(hdl, output2, msg->get_opcode());    
+       
  
 
 }

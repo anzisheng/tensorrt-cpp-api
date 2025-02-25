@@ -271,7 +271,7 @@ string swap_faces(string photo, string style, server* s, websocketpp::connection
     //TaskResult message = resultQueue.front();
     //resultQueue.pop();
     // 向对象中添加数据
-    root["type"] = "Generating OOOO!";
+    root["type"] = "Generating!";
     root["result_name"] = result;//message.result_name; 
     // 创建一个Json::StreamWriterBuilder
     Json::StreamWriterBuilder writer;
@@ -369,10 +369,11 @@ void consumerFunction(server* s, websocketpp::connection_hdl hdl,message_ptr msg
         // std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     //free the space.
-    free_faces();
+    
     cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++=================================="<<endl;
     auto totalElapsedTimeMs = stopwatch.elapsedTime<float, std::chrono::milliseconds>();
     cout << "total time is " << totalElapsedTimeMs/1000 <<" S"<<endl;
+    free_faces();
 }
     
     // for (int i = 1; i <= 12; ++i) {

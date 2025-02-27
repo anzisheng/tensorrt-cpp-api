@@ -542,72 +542,9 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
 }
 
 int main() {
-
-    // // 创建一个Json::Value对象
-    // Json::Value root;
- 
-    // // 向对象中添加数据
-    // root["name"] = "John Doe";
-    // root["age"] = 30;
-    // root["isAlive"] = true;
-    // root["address"]["city"] = "New York";
-    // root["address"]["state"] = "NY";
- 
-    // // 创建一个Json::StreamWriterBuilder
-    // Json::StreamWriterBuilder writer;
- 
-    // // 将Json::Value对象转换为字符串
-    // std::string output = Json::writeString(writer, root);
- 
-    // // 打印输出
-    // std::cout << output << std::endl;
- 
     
-    // JSON字符串
-    //std::string jsonString = R"({"name":"John Doe","age":30,"isAlive":true,"address":{"city":"New York","state":"NY"}})";
-    std::string jsonString = R"({	
-	"sessionID":"2",
-	"styleName":[
-	{
-		"name" : "1.jpg"		
-	},
-	{
-		"name" : "2.jpg"		
-	},
-	{
-		"name" : "3.jpg"
-	}
-	]	
-})";
- 
-    // 创建一个Json::CharReaderBuilder
-    Json::CharReaderBuilder builder;
- 
-    // 创建一个Json::Value对象
-    Json::Value root;
- 
-    // 创建一个错误信息字符串
-    std::string errors;
- 
-    // 解析JSON字符串
-    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-    bool parsingSuccessful = reader->parse(jsonString.c_str(), jsonString.c_str() + jsonString.size(), &root, &errors);
- 
-    if (!parsingSuccessful) {
-        // 打印错误信息并退出
-        std::cout << "Error parsing JSON: " << errors << std::endl;
-        return 1;
-    }
- 
-    // 提取并打印数据
-    std::cout << "Name: " << root["sessionID"].asString() << std::endl;
-    // std::cout << "Age: " << root["age"].asInt() << std::endl;
-    // std::cout << "Is Alive: " << (root["isAlive"].asBool() ? "Yes" : "No") << std::endl;
-    // std::cout << "City: " << root["address"]["city"].asString() << std::endl;
-    // std::cout << "State: " << root["address"]["state"].asString() << std::endl;
-
-
-
+    
+   
     // Create a server endpoint
     server echo_server;
     std::cout << "hello, server!"<< std::endl;

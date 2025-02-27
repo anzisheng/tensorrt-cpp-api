@@ -541,10 +541,83 @@ void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
 
 }
 
+#include <openssl/x509.h>
+#include <openssl/pem.h>
+#include <openssl/err.h>
+#include <iostream>
+#include <ctime>
+
+// 检查证书是否过期
+bool is_certificate_expired(X509* cert) {
+    if (!cert) {
+        return true; // 无效证书
+    }
+
+    // 获取证书的过期时间
+    ASN1_TIME* expiry_time = X509_get_notAfter(cert);
+    if (!expiry_time) {
+        return true; // 无法获取过期时间
+    }
+
+    // 将 ASN1_TIME 转换为 time_t
+    struct tm tm_expiry;
+    if (!ASN1_TIME_to_tm(expiry_time, &tm_expiry)) {
+        return true; // 转换失败
+    }
+
+    // 获取当前时间
+    std::time_t now = std::time(nullptr);
+    std::tm tm_now = *std::gmtime(&now);
+
+    // 比较时间
+    if (std::mktime(&tm_expiry) < std::mktime(&tm_now)) {
+        return true; // 证书已过期
+    }
+
+    return false; // 证书未过期
+}
+
 int main() {
     
-    
-   
+    const char* cert_file = "server.crt";
+
+    // 初始化 OpenSSL
+    OpenSSL_add_all_algorithms();
+    ERR_load_crypto_strings();
+    // 打开证书文件
+    FILE* fp = fopen(cert_file, "r");
+    if (!fp) {
+        std::cerr << "无法打开证书文件: " << cert_file << std::endl;
+        return 1;
+    }
+   // 加载证书
+    X509* cert = PEM_read_X509(fp, nullptr, nullptr, nullptr);
+    fclose(fp);
+
+    if (!cert) {
+        std::cerr << "无法加载证书" << std::endl;
+        ERR_print_errors_fp(stderr);
+        return 1;
+    }
+
+    // 检查证书是否过期
+    if (is_certificate_expired(cert)) {
+        std::cout << "证书已过期。请更新证书！ " << std::endl;
+        X509_free(cert);
+        EVP_cleanup();
+        ERR_free_strings();
+        return 0;
+    } else {
+        std::cout << "证书未过期。请提交订单!" << std::endl;
+    }
+
+    // 释放资源
+    X509_free(cert);
+    EVP_cleanup();
+    ERR_free_strings();
+
+
+////////////////////////////////////////
     // Create a server endpoint
     server echo_server;
     std::cout << "hello, server!"<< std::endl;

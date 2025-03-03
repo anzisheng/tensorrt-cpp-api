@@ -3,6 +3,8 @@
 #include "cmd_line_parser.h"
 #include "logger.h"
 #include "engine.h"
+#include <filesystem>
+namespace fs = std::filesystem;
 #include <chrono>
 #include <opencv2/cudaimgproc.hpp>
 #include <opencv2/opencv.hpp>
@@ -260,19 +262,56 @@ string swap_faces(string photo, string style, server* s, websocketpp::connection
 //#endif    
     
     cv::Mat resultimg = enhance_face_net_trt->process(swapimg, target_landmark_5, buffers_enhance);
-    cout << "testing:::: photo::::"<< photo<<"substr: "<<photo.substr(0, photo.rfind("."))<<endl;
-    string result = fmt::format("{}_{}.jpg",  photo.substr(0, photo.rfind(".")), style.substr(0, style.rfind(".")));
-    //imwrite("resultimgend.jpg", resultimg);
-    cout << "generating:::: ::::"<< result<<endl;
+    
+    fs::current_path("./");
+    fs::path currentPath = fs::current_path();
+	std::cout << currentPath << std::endl;
+    std::cout << "currentPath:" << currentPath.string() << std::endl;
 
-    imwrite(result, resultimg);
+    string file = photo;
+    int pos = file.find_last_of('/');
+    cout << "pos of photo is " << pos <<endl;
+    std::string path_photo(file.substr(0, pos));
+    std::string name_photo(file.substr(pos + 1));
+    name_photo = name_photo.substr(0, name_photo.rfind("."));
+    cout << "name photp: " << name_photo<<endl;
+
+    file = style;
+    pos = file.find_last_of('/');  
+    cout << "pos of style is " << pos <<endl;
+    std::string path_style((pos < 0)? "" : file.substr(0, pos));
+    std::string name_style(file.substr(pos + 1));
+    //name_photo = name_style.substr(0, name_style.rfind("."));
+    cout << "name style: " << name_style<<endl;
+
+    std::cout << "file photo path is: " << path_photo << std::endl;
+    std::cout << "file style path is: " << path_style << std::endl;
+    std::string temp = name_photo.substr(0, name_photo.rfind(".")) +"_"+name_style.substr(0, name_style.rfind("."))+".jpg";
+    std::cout << "new jpg name := " << temp << std::endl;
+
+    std::filesystem::path temp_fs_path_append(path_photo+"/"+path_style+"/"+temp);
+
+    std::cout << "combined path :" << temp_fs_path_append << std::endl;
+    currentPath.append(temp_fs_path_append.string());
+    std::cout << "currentPath:" << currentPath.string() << std::endl;
+    std::filesystem::create_directories(currentPath.parent_path());
+    cout << "path p's parent: " <<currentPath.parent_path() <<endl;    
+    
+
+
+    //cout << "testing:::: photo::::"<< photo<<"substr: "<<photo.substr(0, photo.rfind("."))<<endl;
+    //string result = fmt::format("{}_{}.jpg",  photo.substr(0, photo.rfind(".")), style.substr(0, style.rfind(".")));
+    //imwrite("resultimgend.jpg", resultimg);
+    //cout << "generating:::: ::::"<< result<<endl;
+
+    imwrite(currentPath.string(), resultimg);
 
     Json::Value root; 
     //TaskResult message = resultQueue.front();
     //resultQueue.pop();
     // 向对象中添加数据
     root["type"] = "Generating!";
-    root["result_name"] = result;//message.result_name; 
+    root["result_name"] = currentPath.string();//result;//message.result_name; 
     // 创建一个Json::StreamWriterBuilder
     Json::StreamWriterBuilder writer;
     // 将Json::Value对象转换为字符串
@@ -286,7 +325,7 @@ string swap_faces(string photo, string style, server* s, websocketpp::connection
     
     
 
-    return result;
+    return currentPath.string();
 }
 
 // 生产者线程函数，向消息队列中添加消息

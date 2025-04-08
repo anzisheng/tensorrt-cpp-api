@@ -165,7 +165,7 @@ void free_faces()
     if(enhance_face_net_trt) delete enhance_face_net_trt;
     //if(yoloV8) delete yoloV8;
 }
-string swap_faces(string photo, string style, server* s, websocketpp::connection_hdl hdl,message_ptr msg){
+string swap_faces(string photo, string style){
         //tensorrt part
     YoloV8Config config;
     std::string onnxModelPath;
@@ -306,22 +306,22 @@ string swap_faces(string photo, string style, server* s, websocketpp::connection
 
     imwrite(currentPath.string(), resultimg);
 
-    Json::Value root; 
-    //TaskResult message = resultQueue.front();
-    //resultQueue.pop();
-    // 向对象中添加数据
-    root["type"] = "Generating!";
-    root["result_name"] = currentPath.string();//result;//message.result_name; 
-    // 创建一个Json::StreamWriterBuilder
-    Json::StreamWriterBuilder writer;
-    // 将Json::Value对象转换为字符串
-    std::string output = Json::writeString(writer, root);
+    // Json::Value root; 
+    // //TaskResult message = resultQueue.front();
+    // //resultQueue.pop();
+    // // 向对象中添加数据
+    // root["type"] = "Generating!";
+    // root["result_name"] = currentPath.string();//result;//message.result_name; 
+    // // 创建一个Json::StreamWriterBuilder
+    // Json::StreamWriterBuilder writer;
+    // // 将Json::Value对象转换为字符串
+    // std::string output = Json::writeString(writer, root);
 
-    // 打印输出
-    //std::cout << output << std::endl;
-    //s->send(hdl, msg->get_payload(), msg->get_opcode());
-    s->send(hdl, output, msg->get_opcode());
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    // // 打印输出
+    // //std::cout << output << std::endl;
+    // //s->send(hdl, msg->get_payload(), msg->get_opcode());
+    // s->send(hdl, output, msg->get_opcode());
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1));
     
     
 
@@ -372,7 +372,7 @@ void consumerFunction(server* s, websocketpp::connection_hdl hdl,message_ptr msg
          if (message.style == "-10.jpg") {
              break;
          }
-        string swap_result = swap_faces(message.photo,message.style, s, hdl, msg);
+        string swap_result = swap_faces(message.photo,message.style);
         cout << "swap_result:   " << swap_result <<endl;
         TaskResult  reultMsg = TaskResult(swap_result);        
         //将消息添加到队列
@@ -437,8 +437,262 @@ void consumerFunction(server* s, websocketpp::connection_hdl hdl,message_ptr msg
 
 
 
+std::string combine_path(std::string photo, std::string style)
+{
+    fs::current_path("./");
+    fs::path currentPath = fs::current_path();
+	std::cout << currentPath << std::endl;
+    std::cout << "currentPath:" << currentPath.string() << std::endl;
+
+    
+    string file = photo;
+    int pos = file.find_last_of('/');
+    cout << "pos of photo is " << pos <<endl;
+    std::string path_photo(file.substr(0, pos));
+    std::string name_photo(file.substr(pos + 1));
+    name_photo = name_photo.substr(0, name_photo.rfind("."));
+    cout << "name photp: " << name_photo<<endl;
+    
+    file = style;
+    pos = file.find_last_of('/');
+    cout << "pos of style is " << pos <<endl;
+    std::string path_style((pos < 0)? "" : file.substr(0, pos));
+    std::string name_style(file.substr(pos + 1));
+    //name_photo = name_style.substr(0, name_style.rfind("."));
+    cout << "name style: " << name_style<<endl;
+           
+
+    std::cout << "file photo path is: " << path_photo << std::endl;
+    std::cout << "file style path is: " << path_style << std::endl;
+    std::string temp = name_photo.substr(0, name_photo.rfind(".")) +"_"+name_style.substr(0, name_style.rfind("."))+".jpg";
+    std::cout << "new jpg name := " << temp << std::endl;
+
+    std::filesystem::path temp_fs_path_append(path_photo+"/"+path_style+"/"+temp);
+
+    
+    //string result = name_photo.substr(0, name_photo.rfind(".")) +"_"+name_style.substr(0, name_style.rfind("."))+".jpg";
+    //std::cout << "at last jpg name" << result << std::endl;
+    //temp_fs_path_append.append(result);
+    std::cout << "combined path :" << temp_fs_path_append << std::endl;
+    currentPath.append(temp_fs_path_append.string());
+    std::cout << "currentPath:" << currentPath.string() << std::endl;
+    //std::filesystem::path p(temp);
+    //cout << "path p: " <<p.string() <<endl;    
+    std::filesystem::create_directories(currentPath.parent_path());
+    cout << "path p's parent: " <<currentPath.parent_path() <<endl;    
+    
+
+    //cout << "result name: " <<result <<endl;
+    //std::filesystem::path outputPath = p;//+result;
+    //cout << "last name: " <<outputPath <<endl;
+    //std::ofstream outputFile(outputPath, std::ios_base::app); 
+    //string result = temp+name_style;
+    //cout << "result: " <<temp_fs_path_append.string() <<endl;
+    //imwrite(currentPath.string(), resultimg);
+	// auto totalElapsedTimeMs = stopwatch.elapsedTime<float, std::chrono::milliseconds>();
+    // cout << "total time is " << totalElapsedTimeMs/1000 <<" S"<<endl;
+
+	
+	
+	// Json::Value root; 
+    // //TaskResult message = resultQueue.front();
+    // //resultQueue.pop();
+    // // 向对象中添加数据
+    // root["type"] = "Generating!";
+    // root["result_name"] = currentPath.string();//result;//message.result_name; 
+    // // 创建一个Json::StreamWriterBuilder
+    // Json::StreamWriterBuilder writer;
+    // // 将Json::Value对象转换为字符串
+    // std::string output = Json::writeString(writer, root);
+    
+    // // 打印输出
+    // //std::cout << output << std::endl;
+    // //s->send(hdl, msg->get_payload(), msg->get_opcode());
+    // s->send(hdl, output, msg->get_opcode());
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1));
+ 
+    
+
+    return currentPath.string();//result;
+
+
+
+}
+
+
+
+
+
 // Define a callback to handle incoming messages
 void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
+    std::cout << "on_message called with hdl: " << hdl.lock().get()
+              << " and message: " << msg->get_payload()
+              << std::endl;
+    nlohmann::json commands = msg->get_payload().data();
+    //std::cout << "to raw string:"<<commands << std::endl;
+    std::string jsonString = commands;
+    // 创建一个Json::CharReaderBuilder
+    Json::CharReaderBuilder builder;
+
+    // 创建一个Json::Value对象
+    Json::Value root;
+ 
+    // 创建一个错误信息字符串
+    std::string errors;
+    
+    //Json::Value val;
+    //Json::Reader reader;
+    
+    // 解析JSON字符串
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    bool parsingSuccessful = reader->parse(jsonString.c_str(), jsonString.c_str() + jsonString.size(), &root, &errors);
+    if (!parsingSuccessful) {
+            // 打印错误信息并退出
+            std::cout << "Error parsing JSON: " << errors << std::endl;
+            //return 1;
+        }
+    
+    int StyleNum = root["styleName"].size();
+    string PhotoName = root["sessionID"].asString()+"/0.jpg";
+    std::vector<std::string>  messageVec;
+    Json::Value root_message;
+    Json::StreamWriterBuilder writer;
+    
+    Json::Value root2;
+    root2["type"] = "Complete!";
+    //root["result_name"] = message.result_name; 
+    Json::StreamWriterBuilder writer2;
+    // 将Json::Value对象转换为字符串
+    std::string output2 = Json::writeString(writer2, root2);
+    //s->send(hdl, output2, msg->get_opcode()); 
+    
+    for (int i = 0; i < StyleNum; i++)
+    {
+        root_message["type"] = "generating";
+        root_message["result_name"] = combine_path(PhotoName, root["styleName"][i]["name"].asString());//"abc";//swap_result;
+        cout << "combine name ......" <<root_message["result_name"]<<endl;
+        std::string output = Json::writeString(writer, root_message);
+        messageVec.push_back(output);
+        }
+    std::thread([s, hdl,StyleNum,PhotoName, writer, root, output2, messageVec]() {
+
+        for (int i = 0; i < StyleNum; i++)
+        {   preciseStopwatch stopwatch2;
+            std::string swap_result = swap_faces(PhotoName, root["styleName"][i]["name"].asString());
+            //root_message["result_name"] = "abc";//swap_result;
+            //std::string output = Json::writeString(writer, root_message);
+            //messageVec.push_back((output));
+            s->send(hdl, messageVec[i], websocketpp::frame::opcode::text);
+            auto totalElapsedTimeMs = stopwatch2.elapsedTime<float, std::chrono::milliseconds>();
+            cout << "=================this picture spend  "<< totalElapsedTimeMs/1000 <<" S"<<endl;
+    //cout << "++++++++++++++ all handle "<<StyleNum<< " pictures;" << "total time is  "<< totalElapsedTimeMs/1000 <<" S"<<endl;
+        }          
+
+        s->send(hdl, output2, websocketpp::frame::opcode::text);
+    }).detach(); // 分离线程，避免阻塞主线程
+
+    
+
+    
+    // std::thread producer(producerFunction, std::ref(root));
+    // std::thread consumer(consumerFunction, s, hdl,  msg);
+
+    // // 等待线程执行完成
+    // consumer.join();
+    // producer.join();
+    
+    cout << "-----------------------"<<endl;
+
+    //json commands = json(msg->get_payload().data())["sessionID"];
+    //std::cout << "the sessioId is :"<<commands.at("sessionID")<<std::endl;
+
+    //order cr;
+    //from_json(commands, cr);
+    
+
+    std::cout <<"waiting.... for post next order!"<<std::endl;
+
+    // check for a special command to instruct the server to stop listening so
+    // it can be cleanly exited.
+    if (msg->get_payload() == "stop-listening") {
+        s->stop_listening();
+        return;
+    }
+    /*
+    while(!resultQueue.empty())
+    {
+
+    try {
+    // std::cout << "reuren message" <<std::endl;
+    // nlohmann::json commands = msg->get_payload().data();
+    // std::cout << "to raw string:"<<commands << std::endl;
+    // std::string jsonString = commands;
+    // // 创建一个Json::CharReaderBuilder
+    //Json::CharReaderBuilder builder;
+
+    // 创建一个Json::Value对象
+    // Json::Value root;
+ 
+    // // 创建一个错误信息字符串
+    // std::string errors;
+    
+    // //Json::Value val;
+    // //Json::Reader reader;
+    
+    // // 解析JSON字符串
+    // std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    // bool parsingSuccessful = reader->parse(jsonString.c_str(), jsonString.c_str() + jsonString.size(), &root, &errors);
+    // if (!parsingSuccessful) {
+    //         // 打印错误信息并退出
+    //         std::cout << "Error parsing JSON: " << errors << std::endl;
+    //         //return 1;
+    //     }
+    
+    // // 提取并打印数据
+    // std::cout << "Name: " << root["sessionID"].asString() << std::endl;
+    // int numStyle = root["styleName"].size();
+    // std::cout << "styleName size: " << numStyle << std::endl;
+    // for(int i = 0; i < numStyle; i++)
+    // {
+    //     std::cout << root["styleName"][i]["name"].asString()<<std::endl;
+    // }
+    // 创建一个Json::Value对象
+    
+   std::cout << "resultQueue size :" <<resultQueue.size() << std::endl;
+    {
+        std::unique_lock<std::mutex> lock(mtx_result);
+        cvs_result.wait(lock, [] { return !resultQueue.empty(); });
+    }
+    Json::Value root; 
+    TaskResult message = resultQueue.front();
+    resultQueue.pop();
+    // 向对象中添加数据
+    root["type"] = "Generating.....!";
+    root["result_name"] = message.result_name; 
+    // 创建一个Json::StreamWriterBuilder
+    Json::StreamWriterBuilder writer;
+    // 将Json::Value对象转换为字符串
+    std::string output = Json::writeString(writer, root);
+ 
+    // 打印输出
+    //std::cout << output << std::endl;
+    //s->send(hdl, msg->get_payload(), msg->get_opcode());
+        s->send(hdl, output, msg->get_opcode());
+    } catch (websocketpp::exception const & e) {
+        std::cout << "Echo failed because: "
+                  << "(" << e.what() << ")" << std::endl;
+    }
+    }*/
+       
+ 
+
+}
+
+
+
+
+// Define a callback to handle incoming messages
+void on_message222(server* s, websocketpp::connection_hdl hdl, message_ptr msg) {
     std::cout << "on_message called with hdl: " << hdl.lock().get()
               << " and message: " << msg->get_payload()
               << std::endl;
@@ -663,6 +917,25 @@ int main() {
     
 
     try {
+        // // Set logging settings
+        // echo_server.set_access_channels(websocketpp::log::alevel::all);
+        // echo_server.clear_access_channels(websocketpp::log::alevel::frame_payload);
+
+        // // Initialize Asio
+        // echo_server.init_asio();
+
+        // // Register our message handler
+        // echo_server.set_message_handler(bind(&on_message,&echo_server,::_1,::_2));
+
+        // // Listen on port 9002
+        // echo_server.listen(9002);
+
+        // // Start the server accept loop
+        // echo_server.start_accept();
+
+        // // Start the ASIO io_service run loop
+        // echo_server.run();
+
         // Set logging settings
         echo_server.set_access_channels(websocketpp::log::alevel::all);
         echo_server.clear_access_channels(websocketpp::log::alevel::frame_payload);
@@ -681,6 +954,10 @@ int main() {
 
         // Start the ASIO io_service run loop
         echo_server.run();
+        //cout << "handling over, free the model."<<endl;
+        //free_faces();
+
+
     } catch (websocketpp::exception const & e) {
         std::cout << e.what() << std::endl;
     } catch (...) {
